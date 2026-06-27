@@ -1,0 +1,7 @@
+node_modules/
+dist/
+*.db
+*.pdf
+.env
+backend/prisma/dev.db
+backend/prisma/dev.db-journal

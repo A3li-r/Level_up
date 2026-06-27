@@ -1,0 +1,355 @@
+// Level Up v2 - Personal Learning OS
+// Complete Database Schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  username       String    @unique
+  password       String
+  avatar         String?
+  title          String    @default("Novice Adventurer")
+  level          Int       @default(1)
+  xp             Int       @default(0)
+  coins          Int       @default(0)
+  streak         Int       @default(0)
+  longestStreak  Int       @default(0)
+  totalHours     Float     @default(0)
+  lastActive     DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  skills         UserSkill[]
+  quests         UserQuest[]
+  achievements   UserAchievement[]
+  notes          Note[]
+  projects       Project[]
+  stats          UserStats?
+  dailyMissions  DailyMission[]
+  quizResults    QuizResult[]
+  focusSessions  FocusSession[]
+  userSettings   UserSettings?
+}
+
+// ============ SKILL TREE ============
+model Skill {
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
+  description     String   @default("")
+  icon            String   @default("📦")
+  color           String   @default("#6366f1")
+  category        String
+  subcategory     String   @default("")
+  difficulty      Int      @default(1)
+  maxLevel        Int      @default(10)
+  parentId        String?
+  parent          Skill?   @relation("SkillTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children        Skill[]  @relation("SkillTree")
+  xpPerLevel      Int      @default(100)
+  tags            String   @default("")
+  isBoss          Boolean  @default(false)
+  bossDescription String   @default("")
+  createdAt       DateTime @default(now())
+
+  users           UserSkill[]
+  resources       Resource[]
+  quests          Quest[]
+  quizzes         Quiz[]
+  synergies       SkillSynergy[] @relation("PrimarySkill")
+  synergiesAsTarget SkillSynergy[] @relation("TargetSkill")
+
+  @@index([category])
+  @@index([parentId])
+}
+
+// ============ SKILL SYNERGY ============
+model SkillSynergy {
+  id          String  @id @default(cuid())
+  primaryId   String
+  primary     Skill   @relation("PrimarySkill", fields: [primaryId], references: [id], onDelete: Cascade)
+  targetId    String
+  target      Skill   @relation("TargetSkill", fields: [targetId], references: [id], onDelete: Cascade)
+  bonusXP     Int     @default(10)
+  description String  @default("")
+
+  @@unique([primaryId, targetId])
+}
+
+// ============ USER SKILL PROGRESS ============
+model UserSkill {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skillId       String
+  skill         Skill     @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  level         Int       @default(0)
+  xp            Int       @default(0)
+  progress      Float     @default(0)
+  status        String    @default("locked")
+  startedAt     DateTime?
+  completedAt   DateTime?
+  masteredAt    DateTime?
+  lastActivity  DateTime?
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([userId, skillId])
+  @@index([userId])
+  @@index([status])
+}
+
+// ============ QUEST SYSTEM ============
+model Quest {
+  id             String   @id @default(cuid())
+  title          String
+  description    String   @default("")
+  type           String   @default("lesson")
+  skillId        String?
+  skill          Skill?   @relation(fields: [skillId], references: [id], onDelete: SetNull)
+  xpReward       Int      @default(10)
+  required       Boolean  @default(false)
+  difficulty     Int      @default(1)
+  estimatedMin   Int      @default(30)
+  prerequisites   String   @default("")
+  isDaily        Boolean  @default(false)
+  repeatable     Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  users          UserQuest[]
+
+  @@index([skillId])
+  @@index([type])
+}
+
+model UserQuest {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questId       String
+  quest         Quest     @relation(fields: [questId], references: [id], onDelete: Cascade)
+  status        String    @default("active")
+  progress      Float     @default(0)
+  startedAt     DateTime  @default(now())
+  completedAt   DateTime?
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([userId, questId])
+  @@index([userId])
+  @@index([status])
+}
+
+// ============ QUIZ SYSTEM ============
+model Quiz {
+  id          String   @id @default(cuid())
+  title       String
+  skillId     String?
+  skill       Skill?   @relation(fields: [skillId], references: [id], onDelete: SetNull)
+  difficulty  Int      @default(1)
+  description String   @default("")
+  createdAt   DateTime @default(now())
+
+  questions   QuizQuestion[]
+  results     QuizResult[]
+}
+
+model QuizQuestion {
+  id         String   @id @default(cuid())
+  quizId     String
+  quiz       Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  question   String
+  options    String
+  correctIdx Int
+  explanation String  @default("")
+  order      Int      @default(0)
+
+  results    QuizAnswer[]
+}
+
+model QuizResult {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quizId     String
+  quiz       Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  score      Int
+  totalQuestions Int
+  timeSpent  Int      @default(0)
+  xpEarned   Int      @default(0)
+  completedAt DateTime @default(now())
+
+  answers    QuizAnswer[]
+
+  @@index([userId])
+}
+
+model QuizAnswer {
+  id         String   @id @default(cuid())
+  resultId   String
+  result     QuizResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  questionId String
+  question   QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selectedIdx Int
+  isCorrect  Boolean
+}
+
+// ============ ACHIEVEMENTS ============
+model Achievement {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String   @default("")
+  icon        String   @default("🏆")
+  type        String   @default("xp")
+  requirement Int      @default(0)
+  tier        String   @default("bronze")
+  xpBonus     Int      @default(0)
+  secret      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  users       UserAchievement[]
+}
+
+model UserAchievement {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievementId String
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  unlockedAt    DateTime    @default(now())
+
+  @@unique([userId, achievementId])
+}
+
+// ============ COURSES & RESOURCES ============
+model Resource {
+  id          String   @id @default(cuid())
+  title       String
+  type        String   @default("article")
+  url         String   @default("")
+  skillId     String?
+  skill       Skill?   @relation(fields: [skillId], references: [id], onDelete: SetNull)
+  description String   @default("")
+  source      String   @default("")
+  free        Boolean  @default(true)
+  duration    Int?
+  rating      Float    @default(0)
+  difficulty  String   @default("beginner")
+  language    String   @default("en")
+  createdAt   DateTime @default(now())
+
+  @@index([skillId])
+  @@index([type])
+}
+
+// ============ NOTES ============
+model Note {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  content   String   @default("")
+  skillIds  String   @default("")
+  tags      String   @default("")
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// ============ PROJECTS ============
+model Project {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title        String
+  description  String   @default("")
+  status       String   @default("planned")
+  xpReward     Int      @default(50)
+  difficulty   Int      @default(1)
+  estimatedMin Int      @default(120)
+  githubUrl    String   @default("")
+  demoUrl      String   @default("")
+  completedAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+// ============ USER STATS ============
+model UserStats {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalXP          Int      @default(0)
+  totalQuests      Int      @default(0)
+  completedQuests  Int      @default(0)
+  skillsUnlocked  Int      @default(0)
+  skillsCompleted  Int      @default(0)
+  skillsMastered   Int      @default(0)
+  projectsCompleted Int    @default(0)
+  quizzesCompleted Int     @default(0)
+  quizAvgScore     Float    @default(0)
+  hoursLearned     Float    @default(0)
+  currentStreak    Int      @default(0)
+  longestStreak    Int      @default(0)
+  focusTime        Float    @default(0)
+  lastActivity     DateTime?
+  updatedAt        DateTime @updatedAt
+}
+
+// ============ DAILY MISSIONS ============
+model DailyMission {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  description String   @default("")
+  xpReward    Int      @default(5)
+  type        String   @default("learn")
+  completed   Boolean  @default(false)
+  date        DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([userId, date])
+}
+
+// ============ FOCUS SESSIONS ============
+model FocusSession {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questId     String?
+  skillId     String?
+  startTime   DateTime @default(now())
+  endTime     DateTime?
+  durationMin Int      @default(0)
+  xpEarned    Int      @default(0)
+  completed   Boolean  @default(false)
+  notes       String   @default("")
+
+  @@index([userId])
+}
+
+// ============ USER SETTINGS ============
+model UserSettings {
+  id              String  @id @default(cuid())
+  userId          String  @unique
+  user            User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  theme           String  @default("dark")
+  notifications   Boolean @default(true)
+  dailyGoalMin    Int     @default(30)
+  language        String  @default("ar")
+  focusDuration   Int     @default(25)
+  shortBreak      Int     @default(5)
+  longBreak       Int     @default(15)
+}
