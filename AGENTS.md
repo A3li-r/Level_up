@@ -27,3 +27,19 @@ Live site: https://levelup-533c4.web.app
 
 ## Autonomous work plan
 See `AUTONOMOUS_ROADMAP.md` — the persistent backlog. Read it at the start of every run, pick the top un-done item, implement incrementally, update its status, then build + smoke-test + deploy.
+
+## Skills & references (for the autonomous agent)
+The cron agent has these skills available — load them when relevant:
+- `rpg-learning-app` — THIS project IS the "Level Up" pattern. Do NOT attach its full SKILL.md (too large); instead load just the reference files you need via `skill_view`:
+  - `skill_view('rpg-learning-app','references/career-paths-v2.md')` → 15 researched career paths with Arabic names, `afterComplete` outcomes, salary, demand, and per-skill XP/tier. **USE THIS as the source of truth when adding paths.**
+  - `skill_view('rpg-learning-app','references/free-courses.md')` → verified free course/resource links for skills.
+  - `skill_view('rpg-learning-app','references/data-model.md')` → Prisma schema (User, Skill, UserSkill, Quest, Achievement, Resource, FocusSession, SkillSynergy…) for the AI/backend features.
+  - `skill_view('rpg-learning-app','references/modern-ui-patterns.md')` → CSS variables, reusable classes, Framer Motion patterns.
+- `firebase-hosting-deploy` — non-interactive Firebase deploy (already handled by `deploy.sh`; `skill_view('firebase-hosting-deploy','references/levelup-deploy.md')` for project specifics).
+- `dogfood` — exploratory QA: find bugs with evidence. Use during the SCAN step.
+- `requesting-code-review` — pre-commit security/quality gate. Run before deploy.
+- `systematic-debugging` — 4-phase root-cause debugging. Use when fixing errors.
+- `react-visual-tree` — building interactive SVG trees (the SkillTree). Use when enhancing the tree.
+
+## External data source
+- roadmap.sh: per-topic JSON at `https://roadmap.sh/<topic>.json` (e.g. `frontend`, `backend`, `devops`, `ai-engineer`) — confirmed reachable (HTTP 200). Use it (or the `rpg-learning-app` career-paths reference) as the source of truth when adding paths/branches/courses.

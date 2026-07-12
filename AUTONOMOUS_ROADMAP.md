@@ -22,15 +22,15 @@ Turn Level Up into a polished, interactive, AI-assisted platform for individual 
 
 ## Backlog (do 1–2 highest-priority un-done items per run; keep changes incremental & build-passing)
 ### Content expansion (paths / branches / courses)
-- [ ] Add paths from roadmap.sh: fetch `https://roadmap.sh/<topic>` (e.g. frontend, backend, devops, ai-engineer, data-engineer, cybersecurity, ui-ux-design, mobile, game-developer, software-architect, cloud). Convert each into a DevPaths entry AND a SkillTree path (branches → skills → tasks). Add ~1 path per run; deep-search the specialization for accurate subtopics.
-- [ ] Add "courses" linking to free resources (official docs, videos) for each skill/task.
-- [ ] Add daily/weekly CHALLENGES and a streak/rewards system to boost engagement.
+- [ ] Add paths using the `rpg-learning-app` reference: `skill_view('rpg-learning-app','references/career-paths-v2.md')` has 15 researched career paths (Full Stack, AI/ML, Cybersecurity, Data Scientist, DevOps, Mobile, UI/UX, Cloud Architect, Game Dev, Blockchain, Embedded, QA, Prompt Engineer, Product Manager, AR/VR) with Arabic names, descriptions, `afterComplete` outcomes, salary, demand, and per-skill XP/tier. Pick ONE not-yet-added path each run; convert it into a DevPaths entry AND a SkillTree path (branches → skills → tasks) keeping the existing TypeScript shapes. Keep UI text Arabic.
+- [ ] Enrich each added path with real courses: `skill_view('rpg-learning-app','references/free-courses.md')` has verified free links (freeCodeCamp, JS.info, Full Stack Open, PortSwigger, Fast.ai, Andrew Ng…). Link them as resources per skill/task.
+- [ ] Add daily/weekly CHALLENGES and a streak/rewards system to boost engagement (see `rpg-learning-app` SkillSynergy + Achievement patterns).
 
-### AI features (backend + UI)
-- [ ] Backend: `POST /api/ai/advice` — accepts a user's progress snapshot, returns personalized next-step advice (use OpenRouter if a key is available; otherwise a rule-based fallback).
+### AI features (backend + UI) — follow `rpg-learning-app` data model
+- [ ] Backend schema: extend `backend/prisma/schema.prisma` per `skill_view('rpg-learning-app','references/data-model.md')` (User, Skill, UserSkill, Quest, Achievement, Resource, FocusSession, SkillSynergy, UserSettings). Keep Prisma v5 (`String[]`/Json NOT supported on SQLite — use comma-separated strings or junction tables). After changes: `rm -f backend/prisma/dev.db && npx prisma db push` then restart the tsx process.
+- [ ] Backend: `POST /api/ai/advice` — accepts a user's progress snapshot, returns personalized next-step advice (use OpenRouter if a key is present; otherwise a solid rule-based fallback so it works offline). Note `rpg-learning-app` also defines `POST /api/ai/roadmap` for goal→skill-tree generation — reuse that pattern.
 - [ ] Backend: `POST /api/moderation` — checks user-generated content for conduct/modesty violations and flags/blocks.
-- [ ] UI page `AIAdvice.tsx` — shows the user an AI analysis of their progress + advice.
-- [ ] Persist user progress (localStorage now; backend + Prisma later) so the AI has data to analyze.
+- [ ] UI page `AIAdvice.tsx` — shows the user an AI analysis of their progress + advice. Persist user progress (localStorage now; backend + Prisma later) so the AI has data to analyze.
 
 ### Usability / interactivity
 - [ ] Search & filter across paths/skills.
