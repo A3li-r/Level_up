@@ -5,3 +5,8 @@ dist/
 .env
 backend/prisma/dev.db
 backend/prisma/dev.db-journal
+
+# Secrets & Firebase build cache (NEVER commit the service-account key)
+firebase-service-account.json
+.firebase/
+frontend/.firebase/

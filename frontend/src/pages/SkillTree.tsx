@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useRef, useEffect, useCallback, type ReactNode, type PointerEvent as ReactPointerEvent } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 // ─── Data Types ────────────────────────────────────────────
@@ -491,15 +491,101 @@ const careerPaths: Path[] = [
 ]
 
 // ─── Component ─────────────────────────────────────────────
+function NodeCard({ cx, cy, w, h, color, children, onClick, glow, dim }: {
+  cx: number; cy: number; w: number; h: number; color: string
+  children: ReactNode; onClick?: () => void; glow?: boolean; dim?: boolean
+}) {
+  return (
+    <motion.div
+      whileHover={onClick ? { scale: 1.05 } : undefined}
+      onClick={onClick}
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: dim ? 0.25 : 1, scale: 1 }}
+      style={{
+        position: 'absolute',
+        left: cx - w / 2, top: cy - h / 2, width: w, height: h,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        padding: '0 10px', borderRadius: 14,
+        background: glow ? `linear-gradient(135deg, ${color}22, rgba(17,17,40,0.92))` : 'rgba(17,17,40,0.85)',
+        border: `1px solid ${color}55`,
+        boxShadow: glow ? `0 0 24px ${color}40` : '0 4px 14px rgba(0,0,0,0.4)',
+        cursor: onClick ? 'pointer' : 'default',
+        transition: 'all 0.2s',
+        userSelect: 'none',
+      }}
+    >
+      {children}
+    </motion.div>
+  )
+}
+
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
+
+// ── Bottom-up vertical tree constants ──
+const SZ = {
+  ROOT: { w: 184, h: 74 },
+  PATH: { w: 172, h: 62 },
+  BRANCH: { w: 168, h: 52 },
+  SKILL: { w: 142, h: 48 },
+  TASK: { w: 118, h: 28 },
+}
+const V_PAD = 50
+const TASK_GAP = 8
+const LEVEL_GAP = 110
+const SLOT = SZ.SKILL.w + 22   // horizontal space per skill
+
+interface TaskPos { task: SkillTask; y: number }
+interface SkillPos { skill: Skill; x: number; y: number; tasks: TaskPos[] }
+interface BranchPos { branch: Branch; x: number; y: number; skills: SkillPos[] }
+interface PathPos { path: Path; x: number; y: number; branches: BranchPos[] }
+
+function computeLayout(paths: Path[]) {
+  const maxTasks = Math.max(1, ...paths.flatMap(p => p.branches.flatMap(b => b.skills.map(s => s.tasks.length))))
+  // vertical (canvas y, downward): tasks at top, root at bottom
+  const skillY = V_PAD + SZ.SKILL.h / 2 + TASK_GAP + maxTasks * SZ.TASK.h + (maxTasks - 1) * TASK_GAP
+  const branchY = skillY + SZ.SKILL.h / 2 + LEVEL_GAP + SZ.BRANCH.h / 2
+  const pathY = branchY + SZ.BRANCH.h / 2 + LEVEL_GAP + SZ.PATH.h / 2
+  const rootY = pathY + SZ.PATH.h / 2 + LEVEL_GAP + SZ.ROOT.h / 2
+
+  let x = V_PAD
+  const placedPaths: PathPos[] = paths.map(p => {
+    const branches = p.branches.map(b => {
+      const skills = b.skills.map(s => {
+        const sx = x + SZ.SKILL.w / 2
+        x += SLOT
+        const tasks: TaskPos[] = s.tasks.map((t, i) => ({
+          task: t,
+          y: skillY - SZ.SKILL.h / 2 - TASK_GAP - SZ.TASK.h / 2 - i * (SZ.TASK.h + TASK_GAP),
+        }))
+        return { skill: s, x: sx, y: skillY, tasks }
+      })
+      const bx = skills.reduce((a, c) => a + c.x, 0) / skills.length
+      return { branch: b, x: bx, y: branchY, skills }
+    })
+    const px = branches.reduce((a, c) => a + c.x, 0) / branches.length
+    return { path: p, x: px, y: pathY, branches }
+  })
+  const rootX = placedPaths.reduce((a, c) => a + c.x, 0) / placedPaths.length
+  const width = x - 22 + V_PAD
+  const height = rootY + SZ.ROOT.h / 2 + V_PAD
+  return { placedPaths, rootX, rootY, skillY, branchY, pathY, width, height }
+}
+
 export default function SkillTree() {
-  const [selectedPath, setSelectedPath] = useState<Path | null>(null)
-  const [expandedBranch, setExpandedBranch] = useState<string | null>(null)
   const [selectedSkill, setSelectedSkill] = useState<Skill | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const [viewMode, setViewMode] = useState<'grid' | 'tree'>('tree')
+  const [viewMode, setViewMode] = useState<'tree' | 'grid'>('tree')
+  const [view, setView] = useState({ scale: 1, x: 0, y: 0 })
+
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const transformRef = useRef<HTMLDivElement>(null)
+  const pctRef = useRef<HTMLSpanElement>(null)
+  const live = useRef({ scale: 1, x: 0, y: 0 })
+  const drag = useRef({ active: false, sx: 0, sy: 0, ox: 0, oy: 0, moved: false })
+  const wheelTimer = useRef<number | null>(null)
 
   const filteredPaths = useMemo(() => {
-    if (!searchQuery) return careerPaths
+    if (!searchQuery.trim()) return careerPaths
     const q = searchQuery.toLowerCase()
     return careerPaths.filter(p =>
       p.name.toLowerCase().includes(q) ||
@@ -512,6 +598,83 @@ export default function SkillTree() {
     )
   }, [searchQuery])
 
+  const { placedPaths, rootX, rootY, skillY, branchY, pathY, width, height } = useMemo(
+    () => computeLayout(filteredPaths),
+    [filteredPaths]
+  )
+
+  const setTransform = (v: { scale: number; x: number; y: number }, animate: boolean) => {
+    const el = transformRef.current
+    if (el) {
+      el.style.transition = animate ? 'transform 0.18s cubic-bezier(0.22, 1, 0.36, 1)' : 'none'
+      el.style.transform = `translate(${v.x}px, ${v.y}px) scale(${v.scale})`
+    }
+    live.current = v
+    if (pctRef.current) pctRef.current.textContent = `${Math.round(v.scale * 100)}%`
+  }
+
+  const fit = useCallback(() => {
+    const vp = viewportRef.current
+    if (!vp || width <= 0 || height <= 0) return
+    const vw = vp.clientWidth, vh = vp.clientHeight
+    const s = clamp(Math.min(vw / width, vh / height) * 0.96, 0.08, 1.6)
+    const nv = { scale: s, x: (vw - width * s) / 2, y: (vh - height * s) / 2 }
+    setTransform(nv, true)
+    setView(nv)
+  }, [width, height])
+
+  useEffect(() => { fit() }, [fit])
+
+  useEffect(() => {
+    const vp = viewportRef.current
+    if (!vp) return
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      const rect = vp.getBoundingClientRect()
+      const px = e.clientX - rect.left, py = e.clientY - rect.top
+      const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12
+      const old = live.current
+      const ns = clamp(old.scale * factor, 0.08, 3)
+      const wx = (px - old.x) / old.scale, wy = (py - old.y) / old.scale
+      const nv = { scale: ns, x: px - wx * ns, y: py - wy * ns }
+      setTransform(nv, true)   // eased, no re-render -> smooth
+      if (wheelTimer.current) clearTimeout(wheelTimer.current)
+      wheelTimer.current = window.setTimeout(() => setView({ ...live.current }), 180)
+    }
+    vp.addEventListener('wheel', onWheel, { passive: false })
+    return () => vp.removeEventListener('wheel', onWheel)
+  }, [])
+
+  const onPointerDown = (e: ReactPointerEvent) => {
+    drag.current = { active: true, sx: e.clientX, sy: e.clientY, ox: live.current.x, oy: live.current.y, moved: false }
+    if (viewportRef.current) viewportRef.current.style.cursor = 'grabbing'
+  }
+  const onPointerMove = (e: ReactPointerEvent) => {
+    const d = drag.current
+    if (!d.active) return
+    const dx = e.clientX - d.sx, dy = e.clientY - d.sy
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) d.moved = true
+    setTransform({ scale: live.current.scale, x: d.ox + dx, y: d.oy + dy }, false)  // 1:1, no easing
+  }
+  const endDrag = () => {
+    const d = drag.current
+    if (!d.active) return
+    if (d.moved) setView({ ...live.current })
+    d.active = false
+    if (viewportRef.current) viewportRef.current.style.cursor = 'grab'
+  }
+
+  const zoomBy = (factor: number) => {
+    const vp = viewportRef.current; if (!vp) return
+    const cx = vp.clientWidth / 2, cy = vp.clientHeight / 2
+    const old = live.current
+    const ns = clamp(old.scale * factor, 0.08, 3)
+    const wx = (cx - old.x) / old.scale, wy = (cy - old.y) / old.scale
+    const nv = { scale: ns, x: cx - wx * ns, y: cy - wy * ns }
+    setTransform(nv, true)
+    setView(nv)
+  }
+
   const getStatusStyle = (status: string) => {
     switch (status) {
       case 'completed': return { color: '#34d399', bg: '#34d39920', border: '#34d39940', label: 'مكتمل' }
@@ -520,280 +683,133 @@ export default function SkillTree() {
       default: return { color: '#6b7280', bg: '#6b728020', border: '#6b728040', label: 'مقفل' }
     }
   }
-
   const getDemandColor = (d: string) => {
     if (d === 'عالي') return '#34d399'
     if (d === 'متوسط') return '#facc15'
     return '#f87171'
   }
 
-  const toggleBranch = useCallback((id: string) => {
-    setExpandedBranch(prev => prev === id ? null : id)
-  }, [])
+  // vertical S-curve connector (control points meet at vertical midpoint)
+  const link = (key: string, x1: number, y1: number, x2: number, y2: number, color: string, op = 0.5) => {
+    const my = (y1 + y2) / 2
+    return (
+      <path key={key} d={`M ${x1} ${y1} C ${x1} ${my}, ${x2} ${my}, ${x2} ${y2}`}
+        fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" opacity={op} />
+    )
+  }
 
-  // ── Render: Tree View ──
-  const renderTreeView = () => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {filteredPaths.map((path, pi) => (
-        <motion.div
-          key={path.id}
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: pi * 0.05 }}
+  // ── Full expanded tree (bottom-up, no drill-down) ──
+  const renderFullTree = () => {
+    const connectors: ReactNode[] = []
+    placedPaths.forEach(p => {
+      connectors.push(link(`r-${p.path.id}`, rootX, rootY - SZ.ROOT.h / 2, p.x, pathY + SZ.PATH.h / 2, p.path.color, 0.6))
+    })
+    placedPaths.forEach(p => {
+      p.branches.forEach(b => {
+        connectors.push(link(`b-${b.branch.id}`, p.x, pathY - SZ.PATH.h / 2, b.x, branchY + SZ.BRANCH.h / 2, b.branch.color, 0.5))
+        b.skills.forEach(s => {
+          const st = getStatusStyle(s.skill.status)
+          connectors.push(link(`s-${s.skill.id}`, b.x, branchY - SZ.BRANCH.h / 2, s.x, skillY + SZ.SKILL.h / 2, st.color, 0.45))
+          s.tasks.forEach(t => {
+            connectors.push(link(`t-${s.skill.id}-${t.task.id}`, s.x, skillY - SZ.SKILL.h / 2, s.x, t.y + SZ.TASK.h / 2, st.color, 0.28))
+          })
+        })
+      })
+    })
+
+    return (
+      <div style={{ direction: 'ltr' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>اسحب للتحريك · عجلة الفأرة للتكبير · اضغط مهارة للتفاصيل</span>
+          <div style={{ flex: 1 }} />
+          <button className="btn-secondary" style={{ fontSize: 13, padding: '6px 12px' }} onClick={() => zoomBy(1.2)}>➕ تكبير</button>
+          <button className="btn-secondary" style={{ fontSize: 13, padding: '6px 12px' }} onClick={() => zoomBy(1 / 1.2)}>➖ تصغير</button>
+          <button className="btn-secondary" style={{ fontSize: 13, padding: '6px 12px' }} onClick={fit}>⤢ ملاءمة</button>
+          <span ref={pctRef} style={{ fontSize: 12, color: 'var(--text-muted)', minWidth: 44, textAlign: 'center' }}>{Math.round(view.scale * 100)}%</span>
+        </div>
+
+        <div
+          ref={viewportRef}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={endDrag}
+          onPointerLeave={endDrag}
+          style={{
+            position: 'relative', overflow: 'hidden', width: '100%', height: '72vh',
+            borderRadius: 16, border: '1px solid var(--border)',
+            background: 'radial-gradient(circle at 50% 90%, rgba(34,211,238,0.07), transparent 55%), rgba(10,10,25,0.6)',
+            cursor: 'grab', touchAction: 'none',
+          }}
         >
-          {/* Path Root (Trunk) */}
-          <motion.div
-            whileHover={{ x: 4 }}
-            onClick={() => { setSelectedPath(selectedPath?.id === path.id ? null : path); setExpandedBranch(null) }}
-            style={{
-              padding: '14px 18px',
-              borderRadius: 14,
-              background: selectedPath?.id === path.id
-                ? `linear-gradient(135deg, ${path.color}15, rgba(17,17,40,0.9))`
-                : 'rgba(17, 17, 40, 0.6)',
-              border: `1px solid ${selectedPath?.id === path.id ? `${path.color}50` : 'var(--border)'}`,
-              cursor: 'pointer',
-              transition: 'all 0.3s',
-              position: 'relative',
-              overflow: 'hidden',
-            }}
-          >
-            {/* Glow accent */}
-            <div style={{
-              position: 'absolute', top: 0, left: 0, right: 0, height: 3,
-              background: `linear-gradient(90deg, ${path.color}, transparent)`
-            }} />
+          <div ref={transformRef} style={{ position: 'absolute', left: 0, top: 0, width, height, transformOrigin: '0 0', willChange: 'transform' }}>
+            <svg width={width} height={height} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'visible' }}>
+              {connectors}
+            </svg>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              {/* Tree icon */}
-              <div style={{
-                width: 42, height: 42, borderRadius: 12,
-                background: `${path.color}15`, border: `1px solid ${path.color}30`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 20, flexShrink: 0
-              }}>
-                {path.icon}
+            <NodeCard cx={rootX} cy={rootY} w={SZ.ROOT.w} h={SZ.ROOT.h} color="#22d3ee" glow>
+              <span style={{ fontSize: 24 }}>🌳</span>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 15, fontWeight: 900, color: '#22d3ee' }}>شجرة المسارات</div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{placedPaths.length} مسار</div>
               </div>
+            </NodeCard>
 
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                  <span style={{ fontSize: 16, fontWeight: 800, color: path.color }}>{path.name}</span>
-                  <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>{path.nameEn}</span>
+            {placedPaths.map(p => (
+              <NodeCard key={p.path.id} cx={p.x} cy={pathY} w={SZ.PATH.w} h={SZ.PATH.h} color={p.path.color} glow>
+                <span style={{ fontSize: 20 }}>{p.path.icon}</span>
+                <div style={{ textAlign: 'center', minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: p.path.color, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.path.name}</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{p.path.branches.length} فرع</div>
                 </div>
-                <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.4 }}>{path.description}</p>
-              </div>
+              </NodeCard>
+            ))}
 
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
-                <span className="tag" style={{
-                  borderColor: `${getDemandColor(path.demand)}40`, color: getDemandColor(path.demand),
-                  background: `${getDemandColor(path.demand)}10`, fontSize: 11
-                }}>{path.demand}</span>
-                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{path.branches.length} فرع</span>
-                <motion.span
-                  animate={{ rotate: selectedPath?.id === path.id ? 90 : 0 }}
-                  style={{ fontSize: 14, color: 'var(--text-muted)' }}
-                >◀</motion.span>
-              </div>
-            </div>
+            {placedPaths.flatMap(p => p.branches.map(b => (
+              <NodeCard key={b.branch.id} cx={b.x} cy={branchY} w={SZ.BRANCH.w} h={SZ.BRANCH.h} color={b.branch.color}>
+                <span style={{ fontSize: 16 }}>{b.branch.icon}</span>
+                <div style={{ textAlign: 'center', minWidth: 0 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: b.branch.color, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.branch.name}</div>
+                </div>
+              </NodeCard>
+            )))}
 
-            {/* Cross-path connections */}
-            {path.connectsTo.length > 0 && (
-              <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>🔗 مرتبط:</span>
-                {path.connectsTo.map(cid => {
-                  const cp = careerPaths.find(p => p.id === cid)
-                  return cp ? (
-                    <span key={cid} style={{
-                      fontSize: 10, padding: '2px 8px', borderRadius: 10,
-                      background: `${cp.color}10`, color: cp.color,
-                      border: `1px solid ${cp.color}20`
-                    }}>{cp.icon} {cp.name}</span>
-                  ) : null
-                })}
-              </div>
-            )}
-          </motion.div>
-
-          {/* Expanded: Branches */}
-          <AnimatePresence>
-            {selectedPath?.id === path.id && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.3 }}
-                style={{ overflow: 'hidden', paddingRight: 8 }}
-              >
-                {/* SVG connection lines from trunk to branches */}
-                <div style={{ position: 'relative', marginTop: 4 }}>
-                  <svg width="28" height={path.branches.length * 8 + 12} style={{ position: 'absolute', right: -4, top: 0 }}>
-                    <line x1="14" y1="0" x2="14" y2="100%" stroke={path.color} strokeWidth="2" strokeDasharray="4 3" opacity="0.3" />
-                  </svg>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingTop: 8 }}>
-                    {path.branches.map((branch, bi) => (
-                      <motion.div
-                        key={branch.id}
-                        initial={{ opacity: 0, x: -15 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: bi * 0.08 }}
-                      >
-                        {/* Branch node */}
-                        <div
-                          onClick={() => toggleBranch(branch.id)}
-                          style={{
-                            padding: '10px 14px',
-                            paddingRight: 24,
-                            borderRadius: 12,
-                            background: expandedBranch === branch.id
-                              ? `${branch.color}10`
-                              : 'rgba(17, 17, 40, 0.4)',
-                            border: `1px solid ${expandedBranch === branch.id ? `${branch.color}30` : 'var(--border)'}`,
-                            cursor: 'pointer',
-                            transition: 'all 0.2s',
-                            position: 'relative',
-                          }}
-                        >
-                          {/* Branch connector line */}
-                          <div style={{
-                            position: 'absolute', right: -8, top: '50%',
-                            width: 12, height: 2,
-                            background: path.color, opacity: 0.3
-                          }} />
-
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <span style={{ fontSize: 18 }}>{branch.icon}</span>
-                            <div style={{ flex: 1 }}>
-                              <span style={{ fontSize: 14, fontWeight: 700, color: branch.color }}>{branch.name}</span>
-                              <span style={{ fontSize: 11, color: 'var(--text-muted)', marginRight: 8 }}>{branch.nameEn}</span>
-                            </div>
-                            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{branch.skills.length} مهارة</span>
-                            <span style={{
-                              fontSize: 12, color: expandedBranch === branch.id ? branch.color : 'var(--text-muted)',
-                              transition: 'color 0.2s'
-                            }}>{expandedBranch === branch.id ? '▲' : '▼'}</span>
-                          </div>
-
-                          {/* Cross-branch connections */}
-                          {branch.connectsTo.length > 0 && (
-                            <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
-                              {branch.connectsTo.map(bid => {
-                                const bb = path.branches.find(b => b.id === bid)
-                                return bb ? (
-                                  <span key={bid} style={{
-                                    fontSize: 10, padding: '1px 6px', borderRadius: 8,
-                                    background: `${bb.color}10`, color: bb.color,
-                                  }}>↗ {bb.name}</span>
-                                ) : null
-                              })}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Skills (leaves) */}
-                        <AnimatePresence>
-                          {expandedBranch === branch.id && (
-                            <motion.div
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: 'auto' }}
-                              exit={{ opacity: 0, height: 0 }}
-                              style={{ overflow: 'hidden', paddingRight: 20 }}
-                            >
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingTop: 6, paddingBottom: 4 }}>
-                                {branch.skills.map((skill, si) => {
-                                  const st = getStatusStyle(skill.status)
-                                  const isActive = selectedSkill?.id === skill.id
-                                  return (
-                                    <motion.div
-                                      key={skill.id}
-                                      initial={{ opacity: 0, x: -10 }}
-                                      animate={{ opacity: 1, x: 0 }}
-                                      transition={{ delay: si * 0.05 }}
-                                      onClick={() => setSelectedSkill(isActive ? null : skill)}
-                                      style={{
-                                        padding: '8px 12px',
-                                        borderRadius: 10,
-                                        background: isActive ? `${st.color}10` : 'rgba(17,17,40,0.3)',
-                                        border: `1px solid ${isActive ? st.border : 'transparent'}`,
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s',
-                                        position: 'relative',
-                                      }}
-                                    >
-                                      {/* Leaf connector */}
-                                      <div style={{
-                                        position: 'absolute', right: -12, top: '50%',
-                                        width: 10, height: 1.5,
-                                        background: branch.color, opacity: 0.2
-                                      }} />
-
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                        <span style={{
-                                          width: 28, height: 28, borderRadius: 8,
-                                          background: st.bg, border: `1px solid ${st.border}`,
-                                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                          fontSize: 13, flexShrink: 0
-                                        }}>{skill.icon}</span>
-
-                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                            <span style={{ fontSize: 13, fontWeight: 600, color: st.color }}>{skill.name}</span>
-                                            <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{skill.nameEn}</span>
-                                          </div>
-                                          <p style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2, lineHeight: 1.3 }}>{skill.description}</p>
-                                        </div>
-
-                                        <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}>
-                                          <span style={{ fontSize: 11, fontWeight: 700, color: st.color }}>{skill.xp}XP</span>
-                                          {skill.status === 'completed' && <span style={{ fontSize: 12 }}>✅</span>}
-                                          {skill.status === 'active' && <span style={{ fontSize: 12 }}>🔥</span>}
-                                          {skill.status === 'locked' && <span style={{ fontSize: 12 }}>🔒</span>}
-                                        </div>
-                                      </div>
-
-                                      {/* Cross-skill connections */}
-                                      {skill.connectsTo.length > 0 && (
-                                        <div style={{ display: 'flex', gap: 3, marginTop: 4, flexWrap: 'wrap' }}>
-                                          {skill.connectsTo.slice(0, 3).map(cid => {
-                                            // find the connected skill across all paths
-                                            let found: { name: string; color: string } | null = null
-                                            for (const p of careerPaths) {
-                                              for (const b of p.branches) {
-                                                const s = b.skills.find(sk => sk.id === cid)
-                                                if (s) { found = { name: s.name, color: p.color }; break }
-                                              }
-                                              if (found) break
-                                            }
-                                            return found ? (
-                                              <span key={cid} style={{
-                                                fontSize: 9, padding: '1px 5px', borderRadius: 6,
-                                                background: `${found.color}08`, color: found.color,
-                                                border: `1px solid ${found.color}15`
-                                              }}>🔗 {found.name}</span>
-                                            ) : null
-                                          })}
-                                        </div>
-                                      )}
-                                    </motion.div>
-                                  )
-                                })}
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </motion.div>
-                    ))}
+            {placedPaths.flatMap(p => p.branches.flatMap(b => b.skills.map(s => {
+              const st = getStatusStyle(s.skill.status)
+              return (
+                <NodeCard key={s.skill.id} cx={s.x} cy={skillY} w={SZ.SKILL.w} h={SZ.SKILL.h} color={st.color}
+                  onClick={() => { if (drag.current.moved) return; setSelectedSkill(s.skill) }}>
+                  <span style={{ fontSize: 14 }}>{s.skill.icon}</span>
+                  <div style={{ textAlign: 'center', minWidth: 0, overflow: 'hidden' }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: st.color, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.skill.name}</div>
+                    <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>{s.skill.xp} XP</div>
                   </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
-      ))}
-    </div>
-  )
+                </NodeCard>
+              )
+            })))}
 
-  // ── Render: Grid View (compact) ──
+            {placedPaths.flatMap(p => p.branches.flatMap(b => b.skills.flatMap(s => s.tasks.map(t => (
+              <div key={t.task.id} style={{
+                position: 'absolute', left: s.x - SZ.TASK.w / 2, top: t.y - SZ.TASK.h / 2,
+                width: SZ.TASK.w, height: SZ.TASK.h, display: 'flex', alignItems: 'center', gap: 6,
+                padding: '0 8px', borderRadius: 9, fontSize: 10,
+                background: 'rgba(255,255,255,0.03)', border: `1px solid ${getStatusStyle(s.skill.status).color}22`,
+                color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', userSelect: 'none',
+              }}>
+                <span>{t.task.type === 'theory' ? '📖' : t.task.type === 'project' ? '🏗' : t.task.type === 'challenge' ? '⚔' : '🏆'}</span>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.task.name}</span>
+              </div>
+            )))))}
+          </div>
+        </div>
+
+        {placedPaths.length === 0 && (
+          <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>لا توجد نتائج مطابقة للبحث</p>
+        )}
+      </div>
+    )
+  }
+
+  // ── Grid View (compact) ──
   const renderGridView = () => (
     <div className="card-grid">
       {filteredPaths.map((path, i) => (
@@ -803,7 +819,6 @@ export default function SkillTree() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: i * 0.04 }}
           whileHover={{ y: -4 }}
-          onClick={() => setSelectedPath(path)}
           style={{
             padding: 18, borderRadius: 14,
             background: 'rgba(17, 17, 40, 0.7)',
@@ -839,7 +854,6 @@ export default function SkillTree() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* Header */}
       <div>
         <motion.h2 className="section-title" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
           <span style={{ color: '#22d3ee' }}>⬡</span> شجرة المهارات والمسارات
@@ -849,7 +863,6 @@ export default function SkillTree() {
         </p>
       </div>
 
-      {/* Search + View Toggle */}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{ position: 'relative', flex: 1 }}>
           <input
@@ -866,7 +879,6 @@ export default function SkillTree() {
           <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 16, color: 'var(--text-muted)' }}>🔍</span>
         </motion.div>
 
-        {/* View mode toggle */}
         <div style={{ display: 'flex', background: 'rgba(17,17,40,0.8)', borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden' }}>
           {(['tree', 'grid'] as const).map(mode => (
             <button
@@ -886,10 +898,8 @@ export default function SkillTree() {
         </div>
       </div>
 
-      {/* Content */}
-      {viewMode === 'tree' ? renderTreeView() : renderGridView()}
+      {viewMode === 'tree' ? renderFullTree() : renderGridView()}
 
-      {/* Skill Detail Modal */}
       <AnimatePresence>
         {selectedSkill && (
           <motion.div
@@ -930,7 +940,6 @@ export default function SkillTree() {
 
                     <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 18 }}>{selectedSkill.description}</p>
 
-                    {/* XP Bar */}
                     <div style={{ marginBottom: 18 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                         <span style={{ fontSize: 13, fontWeight: 600 }}>نقاط الخبرة</span>
@@ -945,7 +954,6 @@ export default function SkillTree() {
                       </div>
                     </div>
 
-                    {/* Tasks */}
                     <h4 style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>📋 المهام</h4>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
                       {selectedSkill.tasks.map((task, ti) => (
@@ -969,7 +977,6 @@ export default function SkillTree() {
                       ))}
                     </div>
 
-                    {/* Rewards */}
                     {selectedSkill.rewards.length > 0 && (
                       <>
                         <h4 style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>🎁 الجوائز</h4>
@@ -985,7 +992,6 @@ export default function SkillTree() {
                       </>
                     )}
 
-                    {/* Connections */}
                     {selectedSkill.connectsTo.length > 0 && (
                       <>
                         <h4 style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>🔗 مهارات مرتبطة</h4>
