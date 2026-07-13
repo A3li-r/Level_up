@@ -490,7 +490,7 @@ const careerPaths: Path[] = [
   },
   // ── تصميم UI/UX ──
   {
-    id: 'design',
+    id: 'design-uiux',
     name: 'تصميم UI/UX',
     nameEn: 'UI/UX Design',
     icon: '◆',

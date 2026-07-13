@@ -82,6 +82,16 @@ const paths = [
     xp: 1000,
     description: 'تصمم أوامر AI تعطيك أفضل النتائج وتبني وكلاء ذكيين — تخصص جديد وطلبه عالي'
   },
+  {
+    id: 9,
+    title: 'QA Automation',
+    duration: '4-8 شهر',
+    steps: ['Testing Basics', 'Selenium', 'API Testing', 'Performance', 'QA Pro'],
+    color: '#06b6d4',
+    difficulty: 'متوسط',
+    xp: 900,
+    description: 'ابنِ أنظمة اختبار آلي تضمن جودة أي برنامج قبل إطلاقه — بوابة ممتازة لعالم التقنية'
+  },
 ]
 
 export default function DevPaths() {
