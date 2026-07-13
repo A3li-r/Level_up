@@ -72,6 +72,16 @@ const paths = [
     xp: 1200,
     description: 'ابنِ تجارب غامرة وألعاب VR وتطبيقات AR للتجارة والتدريب'
   },
+  {
+    id: 8,
+    title: 'Prompt Engineer',
+    duration: '4-8 شهر',
+    steps: ['LLM Basics', 'Prompt Design', 'Chain-of-Thought', 'RAG', 'AI Agents'],
+    color: '#c084fc',
+    difficulty: 'متوسط',
+    xp: 1000,
+    description: 'تصمم أوامر AI تعطيك أفضل النتائج وتبني وكلاء ذكيين — تخصص جديد وطلبه عالي'
+  },
 ]
 
 export default function DevPaths() {

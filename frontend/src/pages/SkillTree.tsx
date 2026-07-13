@@ -639,6 +639,56 @@ const careerPaths: Path[] = [
     ],
     connectsTo: ['design'],
   },
+  {
+    id: 'prompt',
+    name: 'مهندس الـ Prompt',
+    nameEn: 'Prompt Engineer',
+    icon: '✧',
+    color: '#c084fc',
+    glow: '#c084fc40',
+    description: 'تصمم أوامر AI تعطيك أفضل النتائج، تبني AI Agents، وتشتغل في شركات تطبق الذكاء الاصطناعي — تخصص جديد وطلبه عالي جداً',
+    salary: '$80,000 - $180,000',
+    demand: 'عالي',
+    branches: [
+      {
+        id: 'prompt-foundations',
+        name: 'الأساسيات',
+        nameEn: 'Foundations',
+        icon: '✧',
+        color: '#c084fc',
+        connectsTo: [],
+        skills: [
+          { id: 'prompt-llm', name: 'أساسيات LLM', nameEn: 'LLM Basics', icon: '🤖', status: 'available', xp: 60, description: 'كيف تشتغل نماذج اللغة الكبيرة', tasks: [{ id: 'pt1', name: 'فهم الـ Tokens', xp: 30, type: 'theory' }, { id: 'pt2', name: 'تجربة أول Prompt', xp: 30, type: 'project' }], rewards: ['🤖 LLM Explorer'], connectsTo: ['prompt-design'] },
+          { id: 'prompt-design', name: 'تصميم الـ Prompt', nameEn: 'Prompt Design', icon: '✍', status: 'locked', xp: 70, description: 'صياغة أوامر واضحة وفعالة', tasks: [{ id: 'pt3', name: 'Prompt لهيكل', xp: 35, type: 'project' }, { id: 'pt4', name: 'ضبط الصياغة', xp: 35, type: 'challenge' }], rewards: ['✍ Prompt Crafter'], connectsTo: ['prompt-cot'] },
+        ]
+      },
+      {
+        id: 'prompt-techniques',
+        name: 'التقنيات',
+        nameEn: 'Techniques',
+        icon: '🧩',
+        color: '#c084fc',
+        connectsTo: [],
+        skills: [
+          { id: 'prompt-cot', name: 'التفكير المتسلسل', nameEn: 'Chain-of-Thought', icon: '🔗', status: 'locked', xp: 90, description: 'تقسيم المشكلة لخطوات منطقية', tasks: [{ id: 'pt5', name: 'CoT لحساب', xp: 45, type: 'project' }, { id: 'pt6', name: 'تقييم النتائج', xp: 45, type: 'theory' }], rewards: ['🔗 CoT Master'], connectsTo: ['prompt-rag'] },
+          { id: 'prompt-fewshot', name: 'Few-Shot', nameEn: 'Few-Shot', icon: '📚', status: 'locked', xp: 80, description: 'تعليم النموذج بالأمثلة', tasks: [{ id: 'pt7', name: 'تصنيف بأمثلة', xp: 40, type: 'project' }, { id: 'pt8', name: 'تنسيق المخرجات', xp: 40, type: 'challenge' }], rewards: ['📚 Example Engineer'], connectsTo: ['prompt-rag'] },
+        ]
+      },
+      {
+        id: 'prompt-building',
+        name: 'البناء',
+        nameEn: 'Building',
+        icon: '🛠',
+        color: '#c084fc',
+        connectsTo: [],
+        skills: [
+          { id: 'prompt-rag', name: 'RAG', nameEn: 'RAG', icon: '📄', status: 'locked', xp: 100, description: 'ربط النموذج بمصادر المعرفة', tasks: [{ id: 'pt9', name: 'بحث في مستند', xp: 50, type: 'project' }, { id: 'pt10', name: 'توليد إجابة موثقة', xp: 50, type: 'challenge' }], rewards: ['📄 RAG Builder'], connectsTo: ['prompt-agents'] },
+          { id: 'prompt-agents', name: 'AI Agents', nameEn: 'AI Agents', icon: '🤖', status: 'locked', xp: 120, description: 'بناء وكلاء ذكيين متعددي الخطوات', tasks: [{ id: 'pt11', name: 'وكيل بخطوات', xp: 60, type: 'project' }, { id: 'pt12', name: 'مشروع وكيل كامل', xp: 60, type: 'challenge' }], rewards: ['🚀 Agent Architect'], connectsTo: [] },
+        ]
+      },
+    ],
+    connectsTo: ['ai'],
+  },
 ]
 
 // ─── Component ─────────────────────────────────────────────

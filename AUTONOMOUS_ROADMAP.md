@@ -5,9 +5,9 @@ The agent MUST read this file at the start of each run, update STATUS, and tick 
 Do NOT delete completed items — mark them ✓ and keep history so progress is visible across runs.
 
 ## STATUS
-- LAST RUN: 2026-07-13 (cron run — AR/VR path + touch deploy)
-- LAST RESULT: SCAN clean (frontend build 0 errors, backend tsc clean, live 0 console errors). Deployed the **multi-touch pinch-to-zoom** SkillTree handlers (a checkpoint from a prior run; the live UI already had the touch hint text, so this adds the real JS handlers). Added **AR/VR Developer (مطور AR/VR)** path to both DevPaths.tsx (id 7) and SkillTree.tsx (id 'arvr', 3 branches → 5 skills → 10 tasks), with a cross-link from نمذجة 3D → des-blender and path connectsTo → design. Build ✓, smoke test ✓ (markers arvr + مطور AR/VR in bundle), deploy ✓. Live SkillTree now renders 233 connectors (was 214) and the new node is present.
-- HEALTH: BUILD passing (tsc -b && vite build, 0 errors). BACKEND tsc --noEmit clean. LIVE: 0 console errors, new content verified served (arvr marker + مطور AR/VR in bundle).
+- LAST RUN: 2026-07-13 (cron run — Prompt Engineer path added + deployed)
+- LAST RESULT: SCAN clean (frontend build 0 errors, backend tsc clean, live 0 console errors). Added **Prompt Engineer (مهندس الـ Prompt)** path to both DevPaths.tsx (id 8) and SkillTree.tsx (id 'prompt', 3 branches → 6 skills → 12 tasks) with a cross-link إلى AI/ML (connectsTo: ['ai']). Build ✓, independent code-review ✓ (no security/logic issues), smoke test ✓ (markers مهندس الـ Prompt + prompt-foundations in bundle), deploy ✓. Live SkillTree now renders 255 connectors (was 233) and the new node is present.
+- HEALTH: BUILD passing (tsc -b && vite build, 0 errors). BACKEND tsc --noEmit clean. LIVE: 0 console errors, new content verified served (مهندس الـ Prompt + prompt-foundations in live bundle).
 
 ## Vision (from the owner)
 Turn Level Up into a polished, interactive, AI-assisted platform for individual development:
@@ -22,7 +22,7 @@ Turn Level Up into a polished, interactive, AI-assisted platform for individual 
 
 ## Backlog (do 1–2 highest-priority un-done items per run; keep changes incremental & build-passing)
 ### Content expansion (paths / branches / courses)
-**Added paths log:** ✓ UI/UX Designer (تصميم UI/UX) — deployed 2026-07-13 ✓ Cloud Architect (مهندس Cloud) — deployed 2026-07-13 ✓ AR/VR Developer (مطور AR/VR) — added + deployed 2026-07-13. Remaining not-yet-in-SkillTree from the 15-path reference: Prompt Engineer, QA Automation (Full Stack/AI/ML/Cybersecurity/Data/DevOps/Mobile/UI-UX/Cloud/Game/Blockchain/Embedded/Product already present). Add one per run.
+**Added paths log:** ✓ UI/UX Designer (تصميم UI/UX) — deployed 2026-07-13 ✓ Cloud Architect (مهندس Cloud) — deployed 2026-07-13 ✓ AR/VR Developer (مطور AR/VR) — deployed 2026-07-13 ✓ Prompt Engineer (مهندس الـ Prompt) — deployed 2026-07-13. Remaining not-yet-in-SkillTree from the 15-path reference: **QA Automation (مهندس اختبار آلي)** (Full Stack/AI/ML/Cybersecurity/Data Scientist/DevOps/Mobile/UI-UX/Cloud/Game/Blockchain/Embedded/Product/Prompt Engineer/AR-VR now present). Add one per run.
 - [ ] Add paths using the `rpg-learning-app` reference: `skill_view('rpg-learning-app','references/career-paths-v2.md')` has 15 researched career paths (Full Stack, AI/ML, Cybersecurity, Data Scientist, DevOps, Mobile, UI/UX, Cloud Architect, Game Dev, Blockchain, Embedded, QA, Prompt Engineer, Product Manager, AR/VR) with Arabic names, descriptions, `afterComplete` outcomes, salary, demand, and per-skill XP/tier. Pick ONE not-yet-added path each run; convert it into a DevPaths entry AND a SkillTree path (branches → skills → tasks) keeping the existing TypeScript shapes. Keep UI text Arabic.
 - [ ] Enrich each added path with real courses: `skill_view('rpg-learning-app','references/free-courses.md')` has verified free links (freeCodeCamp, JS.info, Full Stack Open, PortSwigger, Fast.ai, Andrew Ng…). Link them as resources per skill/task.
 - [ ] Add daily/weekly CHALLENGES and a streak/rewards system to boost engagement (see `rpg-learning-app` SkillSynergy + Achievement patterns).
