@@ -51,6 +51,16 @@ const paths = [
     difficulty: 'متوسط',
     xp: 900,
     description: 'تصمم واجهات ومواقع يستخدمها الملايين كـ Freelancer أو في شركة تصميم'
+  },
+  {
+    id: 6,
+    title: 'Cloud Architect',
+    duration: '8-14 شهر',
+    steps: ['Linux', 'Networking', 'AWS', 'Terraform', 'Kubernetes'],
+    color: '#8b5cf6',
+    difficulty: 'صعب',
+    xp: 1300,
+    description: 'تصمم البنية التحتية لشركات كبرى على AWS أو Azure أو GCP وتضمن عملها 24/7'
   }
 ]
 

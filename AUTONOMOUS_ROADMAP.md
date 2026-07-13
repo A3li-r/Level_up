@@ -5,9 +5,9 @@ The agent MUST read this file at the start of each run, update STATUS, and tick 
 Do NOT delete completed items — mark them ✓ and keep history so progress is visible across runs.
 
 ## STATUS
-- LAST RUN: (set by agent each run)
-- LAST RESULT: (set by agent: what was done / errors fixed / deployed? yes/no)
-- HEALTH: (build passing? live site OK? any console errors?)
+- LAST RUN: 2026-07-13 (cron run)
+- LAST RESULT: SCAN clean (frontend build + backend tsc pass, live site 0 JS console errors). Added **Cloud Architect (مهندس Cloud)** path to both DevPaths.tsx (id 6) and SkillTree.tsx (id 'cloud', 3 branches → 6 skills → 12 tasks), wiring connectsTo → programming & devops. Also deployed the UI/UX Design path (تصميم UI/UX) that a prior run had added but not deployed. Build ✓, smoke test ✓ (markers مهندس Cloud + cl-k8s in bundle), deploy ✓ (levelup-533c4.web.app live).
+- HEALTH: BUILD passing (tsc -b && vite build, 0 errors). BACKEND tsc --noEmit clean. LIVE: 0 console errors, new content verified served.
 
 ## Vision (from the owner)
 Turn Level Up into a polished, interactive, AI-assisted platform for individual development:
@@ -22,6 +22,7 @@ Turn Level Up into a polished, interactive, AI-assisted platform for individual 
 
 ## Backlog (do 1–2 highest-priority un-done items per run; keep changes incremental & build-passing)
 ### Content expansion (paths / branches / courses)
+**Added paths log:** ✓ UI/UX Designer (تصميم UI/UX) — added prior run, deployed 2026-07-13 ✓ Cloud Architect (مهندس Cloud) — added + deployed 2026-07-13. Remaining not-yet-in-SkillTree from the 15-path reference: Prompt Engineer, QA Automation, AR/VR (Mobile/Embedded/Game/Blockchain/Cloud/AI/DevOps/Data/Product already present). Add one per run.
 - [ ] Add paths using the `rpg-learning-app` reference: `skill_view('rpg-learning-app','references/career-paths-v2.md')` has 15 researched career paths (Full Stack, AI/ML, Cybersecurity, Data Scientist, DevOps, Mobile, UI/UX, Cloud Architect, Game Dev, Blockchain, Embedded, QA, Prompt Engineer, Product Manager, AR/VR) with Arabic names, descriptions, `afterComplete` outcomes, salary, demand, and per-skill XP/tier. Pick ONE not-yet-added path each run; convert it into a DevPaths entry AND a SkillTree path (branches → skills → tasks) keeping the existing TypeScript shapes. Keep UI text Arabic.
 - [ ] Enrich each added path with real courses: `skill_view('rpg-learning-app','references/free-courses.md')` has verified free links (freeCodeCamp, JS.info, Full Stack Open, PortSwigger, Fast.ai, Andrew Ng…). Link them as resources per skill/task.
 - [ ] Add daily/weekly CHALLENGES and a streak/rewards system to boost engagement (see `rpg-learning-app` SkillSynergy + Achievement patterns).

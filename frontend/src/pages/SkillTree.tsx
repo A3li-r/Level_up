@@ -539,6 +539,57 @@ const careerPaths: Path[] = [
       },
     ]
   },
+  // ── مهندس Cloud ──
+  {
+    id: 'cloud',
+    name: 'مهندس Cloud',
+    nameEn: 'Cloud Architect',
+    icon: '☁',
+    color: '#8b5cf6',
+    glow: '#8b5cf640',
+    description: 'تصميم البنية التحتية لشركات كبرى على AWS و Azure و GCP',
+    salary: '$100K - $230K',
+    demand: 'عالي',
+    connectsTo: ['programming', 'devops'],
+    branches: [
+      {
+        id: 'cloud-linux',
+        name: 'الأساسيات',
+        nameEn: 'Foundations',
+        icon: '🐧',
+        color: '#8b5cf6',
+        connectsTo: [],
+        skills: [
+          { id: 'cl-linux', name: 'Linux', nameEn: 'Linux', icon: '🐧', status: 'available', xp: 40, description: 'أساسيات الخوادم', tasks: [{ id: 'clt1', name: 'سطر الأوامر', xp: 20, type: 'theory' }, { id: 'clt2', name: 'إدارة العمليات', xp: 20, type: 'challenge' }], rewards: ['🐧 Linux User'], connectsTo: ['cl-net'] },
+          { id: 'cl-net', name: 'الشبكات', nameEn: 'Networking', icon: '🌐', status: 'available', xp: 50, description: 'فهم عمل الشبكات', tasks: [{ id: 'clt3', name: 'TCP/IP', xp: 25, type: 'theory' }, { id: 'clt4', name: 'إعداد VPC', xp: 25, type: 'project' }], rewards: ['🌐 Net Worker'], connectsTo: ['cl-aws'] },
+        ]
+      },
+      {
+        id: 'cloud-aws',
+        name: 'السحابة',
+        nameEn: 'Cloud Provider',
+        icon: '☁',
+        color: '#8b5cf6',
+        connectsTo: [],
+        skills: [
+          { id: 'cl-aws', name: 'AWS', nameEn: 'AWS', icon: '☁', status: 'locked', xp: 80, description: 'أشهر منصة سحابية', tasks: [{ id: 'clt5', name: 'EC2 & S3', xp: 30, type: 'project' }, { id: 'clt6', name: 'IAM', xp: 50, type: 'challenge' }], rewards: ['☁ AWS Builder'], connectsTo: ['cl-terra'] },
+          { id: 'cl-azure', name: 'Azure / GCP', nameEn: 'Azure/GCP', icon: '⬡', status: 'locked', xp: 70, description: 'منصات سحابية بديلة', tasks: [{ id: 'clt7', name: 'نشر خدمة', xp: 35, type: 'project' }, { id: 'clt8', name: 'المصادقة', xp: 35, type: 'theory' }], rewards: ['⬡ Multi-Cloud'], connectsTo: ['cl-terra'] },
+        ]
+      },
+      {
+        id: 'cloud-iac',
+        name: 'أتمتة البنية',
+        nameEn: 'Infra as Code',
+        icon: '🛠',
+        color: '#8b5cf6',
+        connectsTo: [],
+        skills: [
+          { id: 'cl-terra', name: 'Terraform', nameEn: 'Terraform', icon: '🛠', status: 'locked', xp: 80, description: 'تعريف البنية بكود', tasks: [{ id: 'clt9', name: 'كتابة Module', xp: 40, type: 'project' }, { id: 'clt10', name: 'State Management', xp: 40, type: 'challenge' }], rewards: ['🛠 IaC Dev'], connectsTo: ['cl-k8s'] },
+          { id: 'cl-k8s', name: 'Kubernetes', nameEn: 'Kubernetes', icon: '⚙', status: 'locked', xp: 90, description: 'تنسيق الحاويات', tasks: [{ id: 'clt11', name: 'نشر Cluster', xp: 45, type: 'project' }, { id: 'clt12', name: 'Scaling', xp: 45, type: 'challenge' }], rewards: ['⚙ Cloud Arch'], connectsTo: [] },
+        ]
+      },
+    ]
+  },
 ]
 
 // ─── Component ─────────────────────────────────────────────
