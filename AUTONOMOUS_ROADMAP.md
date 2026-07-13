@@ -5,9 +5,9 @@ The agent MUST read this file at the start of each run, update STATUS, and tick 
 Do NOT delete completed items — mark them ✓ and keep history so progress is visible across runs.
 
 ## STATUS
-- LAST RUN: 2026-07-13 (cron run — restored career-path tree live + fixed duplicate-id bug + added QA to DevPaths)
-- LAST RESULT: SCAN found a DIVERGENT uncommitted rewrite of `SkillTree.tsx` (a "verified free course tree") that a prior interrupted run had DEPLOYED to the live site, overwriting the documented career-path tree (live bundle showed 60 connectors + 0 career markers instead of the expected 255). Preserved that experiment durably on branch `experiment/course-tree-rewrite` (pushed to origin) and reverted `develop` to the committed career-path tree. BUG FIX: removed the latent duplicate `design` path id (two paths both used `id:'design'` → React key collision + ambiguous `connectsTo`) by renaming the UI/UX Design path to `design-uiux` (the 3 existing `connectsTo:['design']` references still resolve to the broad Design path). CONTENT: added **QA Automation (مهندس اختبار آلي)** entry to `DevPaths.tsx` (id 9; already present in SkillTree as the `automation` path → `auto-qa` branch). Build ✓ (tsc -b && vite build, 0 errors), static security scan clean, smoke test ✓ (markers `مهندس الـ Prompt` + `QA Automation` + `design-uiux` in bundle), deploy ✓. Live SkillTree now renders **255 connectors** (career-path tree restored), 0 console errors.
-- HEALTH: BUILD passing (0 errors). BACKEND tsc --noEmit clean. LIVE: 0 console errors, career-path tree verified served (255 connectors; `مهندس الـ Prompt`, `QA Automation`, `design-uiux` markers present in live bundle). NOTE: the experimental course-tree is preserved (not deployed) on `experiment/course-tree-rewrite` for owner review/merge.
+- LAST RUN: 2026-07-13 (cron run — added AI Path Advisor "مستشار" tab + DevPaths search/filter; build + deploy clean)
+- LAST RESULT: SCAN clean (frontend `tsc -b && vite build` 0 errors; backend `tsc --noEmit` clean; live 0 console errors; SkillTree 255 connectors). IMPROVE: (1) New rule-based AI Path Advisor page `AIAdvice.tsx` wired as a new "✨ مستشار" tab — asks 3 questions (time / goal / level) and recommends the top-3 career paths with Arabic reasoning + a tip box (offline-safe fallback per the AI-feature plan; OpenRouter backend deferred). (2) Added a search box + difficulty filter (الكل / متوسط / صعب) to `DevPaths.tsx` (exported its `paths` array for reuse). Verified live: advisor returns sensible top-3 (e.g. Full Stack / Data Scientist / DevOps for high-income + beginner), search narrows to 1 path for "React", empty-state + difficulty filter both work, 0 console errors. Deploy ✔ (Firebase hosting, bundle `index-D__2T29S.js`).
+- HEALTH: BUILD passing (0 errors). BACKEND tsc --noEmit clean. LIVE: 0 console errors; new markers `مستشار المسار`, `ابحث عن مسار`, `إعادة الاختيار` confirmed in live bundle; "مستشار" tab renders and serves the advisor with 0 console errors.
 
 ## Vision (from the owner)
 Turn Level Up into a polished, interactive, AI-assisted platform for individual development:
@@ -31,10 +31,10 @@ Turn Level Up into a polished, interactive, AI-assisted platform for individual 
 - [ ] Backend schema: extend `backend/prisma/schema.prisma` per `skill_view('rpg-learning-app','references/data-model.md')` (User, Skill, UserSkill, Quest, Achievement, Resource, FocusSession, SkillSynergy, UserSettings). Keep Prisma v5 (`String[]`/Json NOT supported on SQLite — use comma-separated strings or junction tables). After changes: `rm -f backend/prisma/dev.db && npx prisma db push` then restart the tsx process.
 - [ ] Backend: `POST /api/ai/advice` — accepts a user's progress snapshot, returns personalized next-step advice (use OpenRouter if a key is present; otherwise a solid rule-based fallback so it works offline). Note `rpg-learning-app` also defines `POST /api/ai/roadmap` for goal→skill-tree generation — reuse that pattern.
 - [ ] Backend: `POST /api/moderation` — checks user-generated content for conduct/modesty violations and flags/blocks.
-- [ ] UI page `AIAdvice.tsx` — shows the user an AI analysis of their progress + advice. Persist user progress (localStorage now; backend + Prisma later) so the AI has data to analyze.
+- [x] UI page `AIAdvice.tsx` — LIVE as a rule-based offline advisor ("✨ مستشار" tab) 2026-07-13: asks time/goal/level and recommends the top-3 paths with Arabic reasoning. (Full OpenRouter-backed analysis + localStorage progress persistence still pending.)
 
 ### Usability / interactivity
-- [ ] Search & filter across paths/skills.
+- [x] Search & filter across paths/skills (DevPaths search + difficulty filter added 2026-07-13; SkillTree already had search).
 - [ ] Responsive / mobile layout pass.
 - [ ] Smooth onboarding + progress dashboard improvements.
 - [ ] Accessibility pass (contrast, focus, RTL correctness).
