@@ -61,7 +61,17 @@ const paths = [
     difficulty: 'صعب',
     xp: 1300,
     description: 'تصمم البنية التحتية لشركات كبرى على AWS أو Azure أو GCP وتضمن عملها 24/7'
-  }
+  },
+  {
+    id: 7,
+    title: 'AR/VR Developer',
+    duration: '6-12 شهر',
+    steps: ['Unity', '3D Modeling', 'XR SDK', 'Spatial Design', 'AR/VR Pro'],
+    color: '#a78bfa',
+    difficulty: 'صعب',
+    xp: 1200,
+    description: 'ابنِ تجارب غامرة وألعاب VR وتطبيقات AR للتجارة والتدريب'
+  },
 ]
 
 export default function DevPaths() {

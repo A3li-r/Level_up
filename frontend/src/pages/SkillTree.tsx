@@ -590,6 +590,55 @@ const careerPaths: Path[] = [
       },
     ]
   },
+  {
+    id: 'arvr',
+    name: 'مطور AR/VR',
+    nameEn: 'AR/VR Developer',
+    icon: '◎',
+    color: '#a78bfa',
+    glow: '#a78bfa40',
+    description: 'تبني تجارب غامرة وألعاب VR وتطبيقات AR للتجارة والتدريب — المستقبل القادم للتقنية',
+    salary: '$80,000 - $180,000',
+    demand: 'متوسط',
+    branches: [
+      {
+        id: 'arvr-foundations',
+        name: 'الأساسيات',
+        nameEn: 'Foundations',
+        icon: '◎',
+        color: '#a78bfa',
+        connectsTo: [],
+        skills: [
+          { id: 'arvr-unity', name: 'Unity', nameEn: 'Unity', icon: '⚙', status: 'available', xp: 60, description: 'محرك الألعاب والمحاكاة', tasks: [{ id: 'avt1', name: 'مشهد تفاعلي أول', xp: 30, type: 'project' }, { id: 'avt2', name: 'فيزياء الأساس', xp: 30, type: 'theory' }], rewards: ['🎮 Unity Dev'], connectsTo: ['arvr-3d'] },
+          { id: 'arvr-3d', name: 'نمذجة 3D', nameEn: '3D Modeling', icon: '🧊', status: 'locked', xp: 70, description: 'نمذجة ونماذج ثلاثية الأبعاد', tasks: [{ id: 'avt3', name: 'نموذج بسيط', xp: 35, type: 'project' }, { id: 'avt4', name: 'تطبيق مواد', xp: 35, type: 'challenge' }], rewards: ['🧊 Modeler'], connectsTo: ['arvr-xr', 'des-blender'] },
+        ]
+      },
+      {
+        id: 'arvr-xr',
+        name: 'تطوير XR',
+        nameEn: 'XR Development',
+        icon: '⬡',
+        color: '#a78bfa',
+        connectsTo: [],
+        skills: [
+          { id: 'arvr-xr-sdk', name: 'XR SDK', nameEn: 'XR SDK', icon: '⬡', status: 'locked', xp: 90, description: 'أدوات الواقع المختلط (VR/AR)', tasks: [{ id: 'avt5', name: 'مشهد VR', xp: 45, type: 'project' }, { id: 'avt6', name: 'تفاعل باليد', xp: 45, type: 'challenge' }], rewards: ['🥽 XR Dev'], connectsTo: ['arvr-spatial'] },
+          { id: 'arvr-spatial', name: 'تصميم الفضاء', nameEn: 'Spatial Design', icon: '📐', status: 'locked', xp: 80, description: 'تصميم تجارب غامرة مكانية', tasks: [{ id: 'avt7', name: 'UX للـ VR', xp: 40, type: 'theory' }, { id: 'avt8', name: 'تجربة غامرة', xp: 40, type: 'project' }], rewards: ['📐 Spatial Designer'], connectsTo: ['arvr-pro'] },
+        ]
+      },
+      {
+        id: 'arvr-advanced',
+        name: 'متقدم',
+        nameEn: 'Advanced',
+        icon: '🚀',
+        color: '#a78bfa',
+        connectsTo: [],
+        skills: [
+          { id: 'arvr-pro', name: 'محترف AR/VR', nameEn: 'AR/VR Pro', icon: '◎', status: 'locked', xp: 120, description: 'مشاريع احترافية كاملة', tasks: [{ id: 'avt9', name: 'تطبيق AR تسوق', xp: 60, type: 'project' }, { id: 'avt10', name: 'تدريب طبي VR', xp: 60, type: 'challenge' }], rewards: ['🚀 AR/VR Master'], connectsTo: [] },
+        ]
+      },
+    ],
+    connectsTo: ['design'],
+  },
 ]
 
 // ─── Component ─────────────────────────────────────────────
