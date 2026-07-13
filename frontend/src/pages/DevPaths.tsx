@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
-const paths = [
+export const paths = [
   {
     id: 1,
     title: 'Full Stack Developer',
@@ -96,6 +96,18 @@ const paths = [
 
 export default function DevPaths() {
   const [selectedPath, setSelectedPath] = useState<typeof paths[0] | null>(null)
+  const [query, setQuery] = useState('')
+  const [diffFilter, setDiffFilter] = useState<'الكل' | 'متوسط' | 'صعب'>('الكل')
+
+  const filtered = paths.filter(p => {
+    const q = query.trim().toLowerCase()
+    const matchQ = !q ||
+      p.title.toLowerCase().includes(q) ||
+      p.description.toLowerCase().includes(q) ||
+      p.steps.some(s => s.toLowerCase().includes(q))
+    const matchD = diffFilter === 'الكل' || p.difficulty === diffFilter
+    return matchQ && matchD
+  })
 
   const getDifficultyColor = (d: string) => {
     if (d === 'سهل') return 'var(--accent-green)'
@@ -119,9 +131,58 @@ export default function DevPaths() {
         </p>
       </div>
 
+      {/* Search & Filter */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <input
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder="🔍 ابحث عن مسار (مثل: React، ذكاء، تصميم)..."
+          style={{
+            width: '100%',
+            padding: '12px 16px',
+            borderRadius: 12,
+            background: 'rgba(17,17,40,0.7)',
+            border: '1px solid var(--border)',
+            color: 'var(--text-primary)',
+            fontSize: 14,
+            outline: 'none',
+            fontFamily: 'inherit'
+          }}
+        />
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          {(['الكل', 'متوسط', 'صعب'] as const).map(d => (
+            <button
+              key={d}
+              onClick={() => setDiffFilter(d)}
+              className="tag"
+              style={{
+                cursor: 'pointer',
+                borderColor: diffFilter === d ? 'var(--accent-cyan)' : 'var(--border)',
+                color: diffFilter === d ? 'var(--accent-cyan)' : 'var(--text-secondary)',
+                background: diffFilter === d ? 'rgba(34,211,238,0.1)' : 'transparent'
+              }}
+            >
+              {d}
+            </button>
+          ))}
+          <span style={{ fontSize: 13, color: 'var(--text-muted)', marginRight: 'auto' }}>
+            {filtered.length} مسار
+          </span>
+        </div>
+      </div>
+
       {/* Paths */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {paths.map((path, i) => (
+        {filtered.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>🔍</div>
+            <p style={{ fontSize: 15 }}>لا توجد مسارات مطابقة لبحثك</p>
+            <button className="btn-secondary" onClick={() => { setQuery(''); setDiffFilter('الكل') }} style={{ marginTop: 12 }}>
+              إعادة ضبط البحث
+            </button>
+          </div>
+        ) : (
+          filtered.map((path, i) => (
           <motion.div
             key={path.id}
             initial={{ opacity: 0, x: -20 }}
@@ -199,7 +260,7 @@ export default function DevPaths() {
               </span>
             </div>
           </motion.div>
-        ))}
+        )))}
       </div>
 
       {/* Path Detail Modal */}

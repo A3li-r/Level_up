@@ -12,9 +12,10 @@ import Courses from './pages/Courses'
 import Rewards from './pages/Rewards'
 import DevPaths from './pages/DevPaths'
 import Community from './pages/Community'
+import AIAdvice from './pages/AIAdvice'
 import './index.css'
 
-type Tab = 'dashboard' | 'skills' | 'focus' | 'graph' | 'roadmap' | 'ideas' | 'courses' | 'devpaths' | 'rewards' | 'community' | 'quests' | 'achievements'
+type Tab = 'dashboard' | 'skills' | 'focus' | 'graph' | 'roadmap' | 'ideas' | 'courses' | 'devpaths' | 'rewards' | 'community' | 'quests' | 'achievements' | 'aiadvice'
 
 const tabs: { id: Tab; label: string; icon: string; color: string }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: '◈', color: '#a855f7' },
@@ -29,6 +30,7 @@ const tabs: { id: Tab; label: string; icon: string; color: string }[] = [
   { id: 'community', label: 'مجتمع', icon: '◉', color: '#06b6d4' },
   { id: 'quests', label: 'كويستس', icon: '⚔', color: '#e879f9' },
   { id: 'achievements', label: 'إنجازات', icon: '★', color: '#fbbf24' },
+  { id: 'aiadvice', label: 'مستشار', icon: '✨', color: '#c084fc' },
 ]
 
 const pageVariants = {
@@ -195,6 +197,7 @@ function App() {
             {activeTab === 'community' && <Community />}
             {activeTab === 'quests' && <Quests />}
             {activeTab === 'achievements' && <Achievements />}
+            {activeTab === 'aiadvice' && <AIAdvice />}
           </motion.div>
         </AnimatePresence>
       </main>
