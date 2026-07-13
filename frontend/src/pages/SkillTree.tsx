@@ -685,6 +685,10 @@ export default function SkillTree() {
   const live = useRef({ scale: 1, x: 0, y: 0 })
   const drag = useRef({ active: false, sx: 0, sy: 0, ox: 0, oy: 0, moved: false })
   const wheelTimer = useRef<number | null>(null)
+  // multi-touch state for pinch-to-zoom
+  const pointers = useRef<Map<number, { x: number; y: number }>>(new Map())
+  const pinch = useRef<{ dist0: number; scale0: number; mid0: { x: number; y: number }; ox: number; oy: number } | null>(null)
+  const lastTap = useRef({ t: 0, x: 0, y: 0 })
 
   const filteredPaths = useMemo(() => {
     if (!searchQuery.trim()) return careerPaths
@@ -736,7 +740,7 @@ export default function SkillTree() {
       const px = e.clientX - rect.left, py = e.clientY - rect.top
       const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12
       const old = live.current
-      const ns = clamp(old.scale * factor, 0.08, 3)
+      const ns = clamp(old.scale * factor, 0.08, 4)
       const wx = (px - old.x) / old.scale, wy = (py - old.y) / old.scale
       const nv = { scale: ns, x: px - wx * ns, y: py - wy * ns }
       setTransform(nv, true)   // eased, no re-render -> smooth
@@ -748,16 +752,54 @@ export default function SkillTree() {
   }, [])
 
   const onPointerDown = (e: ReactPointerEvent) => {
-    drag.current = { active: true, sx: e.clientX, sy: e.clientY, ox: live.current.x, oy: live.current.y, moved: false }
-    if (viewportRef.current) viewportRef.current.style.cursor = 'grabbing'
+    const vp = viewportRef.current
+    if (!vp) return
+    vp.setPointerCapture(e.pointerId)
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+
+    if (pointers.current.size === 1) {
+      drag.current = { active: true, sx: e.clientX, sy: e.clientY, ox: live.current.x, oy: live.current.y, moved: false }
+      vp.style.cursor = 'grabbing'
+    } else if (pointers.current.size === 2) {
+      // begin pinch: lock the world point under the initial two-finger midpoint
+      const pts = Array.from(pointers.current.values())
+      const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y)
+      const rect = vp.getBoundingClientRect()
+      const midX = (pts[0].x + pts[1].x) / 2 - rect.left
+      const midY = (pts[0].y + pts[1].y) / 2 - rect.top
+      drag.current.moved = true // a pinch is never a click
+      pinch.current = { dist0: dist, scale0: live.current.scale, mid0: { x: midX, y: midY }, ox: live.current.x, oy: live.current.y }
+    }
   }
+
   const onPointerMove = (e: ReactPointerEvent) => {
+    if (!pointers.current.has(e.pointerId)) return
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    const vp = viewportRef.current
+    if (!vp) return
+
+    // pinch zoom (two pointers) — keeps the world point under the fingers fixed
+    if (pinch.current && pointers.current.size >= 2) {
+      const pts = Array.from(pointers.current.values())
+      const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y)
+      const rect = vp.getBoundingClientRect()
+      const midX = (pts[0].x + pts[1].x) / 2 - rect.left
+      const midY = (pts[0].y + pts[1].y) / 2 - rect.top
+      const ns = clamp(pinch.current.scale0 * (dist / pinch.current.dist0), 0.08, 4)
+      const wx = (pinch.current.mid0.x - pinch.current.ox) / pinch.current.scale0
+      const wy = (pinch.current.mid0.y - pinch.current.oy) / pinch.current.scale0
+      setTransform({ scale: ns, x: midX - wx * ns, y: midY - wy * ns }, false) // 1:1 while pinching
+      return
+    }
+
+    // single-pointer pan
     const d = drag.current
     if (!d.active) return
     const dx = e.clientX - d.sx, dy = e.clientY - d.sy
     if (Math.abs(dx) > 4 || Math.abs(dy) > 4) d.moved = true
-    setTransform({ scale: live.current.scale, x: d.ox + dx, y: d.oy + dy }, false)  // 1:1, no easing
+    setTransform({ scale: live.current.scale, x: d.ox + dx, y: d.oy + dy }, false) // 1:1, no easing
   }
+
   const endDrag = () => {
     const d = drag.current
     if (!d.active) return
@@ -766,11 +808,47 @@ export default function SkillTree() {
     if (viewportRef.current) viewportRef.current.style.cursor = 'grab'
   }
 
+  const onPointerUp = (e: ReactPointerEvent) => {
+    const vp = viewportRef.current
+    if (vp) { try { vp.releasePointerCapture(e.pointerId) } catch { /* noop */ } }
+    pointers.current.delete(e.pointerId)
+
+    // pinch ended
+    if (pinch.current && pointers.current.size < 2) {
+      pinch.current = null
+      setView({ ...live.current })
+    }
+
+    if (pointers.current.size === 1) {
+      // one finger remains — restart pan from its position so there is no jump
+      const [pt] = Array.from(pointers.current.values())
+      drag.current = { active: true, sx: pt.x, sy: pt.y, ox: live.current.x, oy: live.current.y, moved: drag.current.moved }
+    } else if (pointers.current.size === 0) {
+      endDrag()
+      // double-tap on empty canvas → zoom in toward the tap point (mobile friendly)
+      if (!drag.current.moved && vp) {
+        const rect = vp.getBoundingClientRect()
+        const lx = e.clientX - rect.left, ly = e.clientY - rect.top
+        const now = Date.now()
+        if (now - lastTap.current.t < 300 && Math.hypot(lx - lastTap.current.x, ly - lastTap.current.y) < 30) {
+          const old = live.current
+          const ns = clamp(old.scale * 1.8, 0.08, 4)
+          const wx = (lx - old.x) / old.scale, wy = (ly - old.y) / old.scale
+          const nv = { scale: ns, x: lx - wx * ns, y: ly - wy * ns }
+          setTransform(nv, true); setView(nv)
+          lastTap.current = { t: 0, x: 0, y: 0 }
+        } else {
+          lastTap.current = { t: now, x: lx, y: ly }
+        }
+      }
+    }
+  }
+
   const zoomBy = (factor: number) => {
     const vp = viewportRef.current; if (!vp) return
     const cx = vp.clientWidth / 2, cy = vp.clientHeight / 2
     const old = live.current
-    const ns = clamp(old.scale * factor, 0.08, 3)
+    const ns = clamp(old.scale * factor, 0.08, 4)
     const wx = (cx - old.x) / old.scale, wy = (cy - old.y) / old.scale
     const nv = { scale: ns, x: cx - wx * ns, y: cy - wy * ns }
     setTransform(nv, true)
@@ -822,22 +900,23 @@ export default function SkillTree() {
     return (
       <div style={{ direction: 'ltr' }}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>اسحب للتحريك · عجلة الفأرة للتكبير · اضغط مهارة للتفاصيل</span>
+          <span style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.4 }}>اسحب للتحريك · قصّر بإصبعين للتكبير/التصغير · اضغط مهارة للتفاصيل</span>
           <div style={{ flex: 1 }} />
-          <button className="btn-secondary" style={{ fontSize: 13, padding: '6px 12px' }} onClick={() => zoomBy(1.2)}>➕ تكبير</button>
-          <button className="btn-secondary" style={{ fontSize: 13, padding: '6px 12px' }} onClick={() => zoomBy(1 / 1.2)}>➖ تصغير</button>
-          <button className="btn-secondary" style={{ fontSize: 13, padding: '6px 12px' }} onClick={fit}>⤢ ملاءمة</button>
-          <span ref={pctRef} style={{ fontSize: 12, color: 'var(--text-muted)', minWidth: 44, textAlign: 'center' }}>{Math.round(view.scale * 100)}%</span>
+          <button className="btn-secondary" style={{ fontSize: 18, padding: '8px 14px', minWidth: 46, minHeight: 42, touchAction: 'manipulation' }} onClick={() => zoomBy(1.2)}>➕</button>
+          <button className="btn-secondary" style={{ fontSize: 18, padding: '8px 14px', minWidth: 46, minHeight: 42, touchAction: 'manipulation' }} onClick={() => zoomBy(1 / 1.2)}>➖</button>
+          <button className="btn-secondary" style={{ fontSize: 13, padding: '8px 14px', minHeight: 42, touchAction: 'manipulation' }} onClick={fit}>⤢ ملاءمة</button>
+          <span ref={pctRef} style={{ fontSize: 12, color: 'var(--text-muted)', minWidth: 46, textAlign: 'center' }}>{Math.round(view.scale * 100)}%</span>
         </div>
 
         <div
           ref={viewportRef}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
-          onPointerUp={endDrag}
+          onPointerUp={onPointerUp}
           onPointerLeave={endDrag}
+          onPointerCancel={onPointerUp}
           style={{
-            position: 'relative', overflow: 'hidden', width: '100%', height: '72vh',
+            position: 'relative', overflow: 'hidden', width: '100%', height: '78vh',
             borderRadius: 16, border: '1px solid var(--border)',
             background: 'radial-gradient(circle at 50% 90%, rgba(34,211,238,0.07), transparent 55%), rgba(10,10,25,0.6)',
             cursor: 'grab', touchAction: 'none',
