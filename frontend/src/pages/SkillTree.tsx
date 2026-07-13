@@ -486,6 +486,57 @@ const careerPaths: Path[] = [
           { id: 'pm-agile', name: 'Agile/Scrum', nameEn: 'Agile', icon: '⬡', status: 'available', xp: 50, description: 'إدارة المشاريع المرنة', tasks: [{ id: 't130', name: 'Sprint Planning', xp: 25, type: 'theory' }, { id: 't131', name: 'إدارة مشروع حقيقي', xp: 25, type: 'project' }], rewards: ['📌 Agile PM'], connectsTo: [] },
         ]
       },
+    ],
+  },
+  // ── تصميم UI/UX ──
+  {
+    id: 'design',
+    name: 'تصميم UI/UX',
+    nameEn: 'UI/UX Design',
+    icon: '◆',
+    color: '#f472b6',
+    glow: '#f472b640',
+    description: 'تصميم واجهات ومواقع يستخدمها الملايين',
+    salary: '$60K - $150K',
+    demand: 'عالي',
+    connectsTo: ['programming', 'product'],
+    branches: [
+      {
+        id: 'uix-basics',
+        name: 'أساسيات التصميم',
+        nameEn: 'Design Basics',
+        icon: '🎨',
+        color: '#f472b6',
+        connectsTo: [],
+        skills: [
+          { id: 'uix-color', name: 'نظرية الألوان', nameEn: 'Color Theory', icon: '◆', status: 'available', xp: 40, description: 'فهم الألوان وتأثيرها', tasks: [{ id: 'dt1', name: 'لوحة ألوان', xp: 20, type: 'project' }, { id: 'dt2', name: 'تباين الألوان', xp: 20, type: 'theory' }], rewards: ['🎨 Colorist'], connectsTo: [] },
+          { id: 'uix-typo', name: 'الخطوط', nameEn: 'Typography', icon: '✒', status: 'available', xp: 40, description: 'اختيار وترتيب الخطوط', tasks: [{ id: 'dt3', name: 'زوج خطوط', xp: 20, type: 'project' }, { id: 'dt4', name: 'قواعد القراءة', xp: 20, type: 'theory' }], rewards: ['✒ Typographer'], connectsTo: [] },
+        ]
+      },
+      {
+        id: 'uix-tools',
+        name: 'أدوات التصميم',
+        nameEn: 'Design Tools',
+        icon: '🛠',
+        color: '#f472b6',
+        connectsTo: [],
+        skills: [
+          { id: 'uix-figma', name: 'Figma', nameEn: 'Figma', icon: '◆', status: 'available', xp: 60, description: 'أشهر أداة تصميم واجهات', tasks: [{ id: 'dt5', name: 'تصميم شاشة', xp: 30, type: 'project' }, { id: 'dt6', name: 'Components', xp: 30, type: 'challenge' }], rewards: ['🛠 Figma User'], connectsTo: ['uix-ui'] },
+          { id: 'uix-ui', name: 'تصميم واجهة', nameEn: 'UI Design', icon: '⬡', status: 'locked', xp: 70, description: 'بناء واجهات جذابة', tasks: [{ id: 'dt7', name: 'تصميم Dashboard', xp: 35, type: 'project' }, { id: 'dt8', name: 'Design Tokens', xp: 35, type: 'challenge' }], rewards: ['⬡ UI Designer'], connectsTo: ['uix-proto'] },
+        ]
+      },
+      {
+        id: 'uix-research',
+        name: 'أبحاث وتجربة المستخدم',
+        nameEn: 'UX Research',
+        icon: '🔍',
+        color: '#f472b6',
+        connectsTo: [],
+        skills: [
+          { id: 'uix-uxr', name: 'أبحاث المستخدم', nameEn: 'UX Research', icon: '🔍', status: 'locked', xp: 60, description: 'فهم احتياجات المستخدم', tasks: [{ id: 'dt9', name: 'مقابلة مستخدم', xp: 30, type: 'project' }, { id: 'dt10', name: 'Persona', xp: 30, type: 'theory' }], rewards: ['🔍 UX Researcher'], connectsTo: ['uix-proto'] },
+          { id: 'uix-proto', name: 'النماذج الأولية', nameEn: 'Prototyping', icon: '⚡', status: 'locked', xp: 80, description: 'تحويل التصميم إلى نموذج تفاعلي', tasks: [{ id: 'dt11', name: 'نموذج تفاعلي', xp: 40, type: 'project' }, { id: 'dt12', name: 'اختبار استخدام', xp: 40, type: 'challenge' }], rewards: ['⚡ Prototyper'], connectsTo: [] },
+        ]
+      },
     ]
   },
 ]

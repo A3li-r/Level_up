@@ -321,7 +321,7 @@ app.post('/api/focus/:sessionId/end', async (req, res) => {
     const updated = await prisma.focusSession.update({ where: { id: sessionId }, data: { endTime, durationMin, xpEarned, completed: completed !== false, notes } });
     if (xpEarned > 0) {
       await prisma.user.update({ where: { id: session.userId }, data: { xp: { increment: xpEarned }, totalHours: { increment: durationMin / 60 } } });
-      await prisma.userStats.upsert({ where: { userId: session.userId }, create: { userId, focusTime: durationMin }, update: { focusTime: { increment: durationMin } } });
+      await prisma.userStats.upsert({ where: { userId: session.userId }, create: { userId: session.userId, focusTime: durationMin }, update: { focusTime: { increment: durationMin } } });
     }
     res.json({ session: updated, xpEarned });
   } catch (err: any) { res.status(500).json({ error: err.message }); }

@@ -41,6 +41,16 @@ const paths = [
     difficulty: 'صعب',
     xp: 1100,
     description: 'أتقن البنية التحتية وأتمتة النشر'
+  },
+  {
+    id: 5,
+    title: 'UI/UX Designer',
+    duration: '4-8 شهر',
+    steps: ['Design Basics', 'Figma', 'UI Design', 'UX Research', 'Prototyping'],
+    color: '#f472b6',
+    difficulty: 'متوسط',
+    xp: 900,
+    description: 'تصمم واجهات ومواقع يستخدمها الملايين كـ Freelancer أو في شركة تصميم'
   }
 ]
 
