@@ -1,9 +1,9 @@
 name: Deploy to GitHub Pages
 
 on:
-  push:
-    branches: [main, develop]
-  workflow_dispatch:
+  workflow_dispatch:  # DISABLED: Firebase (levelup-533c4.web.app) is the live site; Pages deploy was failing on develop. Re-enable by restoring the push trigger below.
+  # push:
+  #   branches: [main, develop]
 
 permissions:
   contents: read
