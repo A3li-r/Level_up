@@ -1,12 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-
-const stats = [
-  { label: 'XP', value: '0', icon: '⚡', color: '#facc15', bg: 'rgba(250, 204, 21, 0.08)' },
-  { label: 'Level', value: '1', icon: '◆', color: '#a855f7', bg: 'rgba(168, 85, 247, 0.08)' },
-  { label: 'Skills', value: '0', icon: '⬡', color: '#22d3ee', bg: 'rgba(34, 211, 238, 0.08)' },
-  { label: 'Quests', value: '0', icon: '⚔', color: '#34d399', bg: 'rgba(52, 211, 153, 0.08)' },
-]
+import { useProgress } from '../context/ProgressContext'
 
 const recentActivity = [
   { text: 'أكملت درس JavaScript الأساسي', time: 'منذ ساعتين', xp: '+50 XP' },
@@ -20,8 +14,35 @@ const dailyGoals = [
   { text: 'أكمل كويست واحد', progress: 0, done: false },
 ]
 
+const dailyTips = [
+  'اقرأ ١٥ دقيقة عن مهارة جديدة اليوم',
+  'اكتب كوداً لمشروعك لمدة ٢٠ دقيقة',
+  'شاهد درساً واحداً من كورس مجاني',
+  'راجع ما تعلمته هذا الأسبوع',
+  'ساعد شخصاً في مجتمع المطورين',
+  'خطّط أهدافك للأسبوع القادم',
+  'جرّب أداة أو لغة برمجة جديدة',
+]
+
 export default function Dashboard() {
+  const { xp, level, streak, coins, recordVisit, claimDailyChallenge, dailyChallengeDate } = useProgress()
   const [hoveredStat, setHoveredStat] = useState<number | null>(null)
+
+  // Update the visit streak whenever the dashboard is opened.
+  useEffect(() => {
+    recordVisit()
+  }, [recordVisit])
+
+  const todayStr = new Date().toISOString().slice(0, 10)
+  const dailyClaimed = dailyChallengeDate === todayStr
+  const todaysTip = dailyTips[Math.floor(Date.now() / 86400000) % dailyTips.length]
+
+  const stats = [
+    { label: 'XP', value: String(xp), icon: '⚡', color: '#facc15', bg: 'rgba(250, 204, 21, 0.08)' },
+    { label: 'Level', value: String(level), icon: '◆', color: '#a855f7', bg: 'rgba(168, 85, 247, 0.08)' },
+    { label: 'سلسلة', value: String(streak), icon: '🔥', color: '#fb923c', bg: 'rgba(251, 146, 60, 0.08)' },
+    { label: 'عملات', value: String(coins), icon: '🪙', color: '#facc15', bg: 'rgba(250, 204, 21, 0.08)' },
+  ]
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -57,9 +78,9 @@ export default function Dashboard() {
           borderRadius: '50%',
           background: 'radial-gradient(circle, rgba(34, 211, 238, 0.2), transparent)',
         }} />
-        
+
         <div style={{ position: 'relative', zIndex: 1 }}>
-          <motion.h1 
+          <motion.h1
             style={{ fontSize: 28, fontWeight: 900, marginBottom: 8 }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -89,10 +110,10 @@ export default function Dashboard() {
               borderColor: hoveredStat === i ? `${stat.color}44` : undefined,
             }}
           >
-            <div style={{ 
-              width: 40, 
-              height: 40, 
-              borderRadius: 12, 
+            <div style={{
+              width: 40,
+              height: 40,
+              borderRadius: 12,
               background: stat.bg,
               display: 'flex',
               alignItems: 'center',
@@ -113,6 +134,50 @@ export default function Dashboard() {
         ))}
       </div>
 
+      {/* Daily Challenge */}
+      <motion.div
+        className="glass"
+        style={{ padding: 24, borderColor: 'rgba(250, 204, 21, 0.25)' }}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.25 }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{
+              width: 48, height: 48, borderRadius: 14,
+              background: 'rgba(250, 204, 21, 0.12)',
+              border: '1px solid rgba(250, 204, 21, 0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22
+            }}>
+              🎯
+            </div>
+            <div>
+              <h3 style={{ fontSize: 17, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8 }}>
+                تحدي اليوم
+                {streak > 1 && (
+                  <span style={{ fontSize: 12, color: 'var(--accent-orange)', background: 'rgba(251,146,60,0.12)', padding: '2px 10px', borderRadius: 'var(--radius-full)' }}>
+                    🔥 سلسلة {streak} أيام
+                  </span>
+                )}
+              </h3>
+              <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>
+                {todaysTip}
+              </p>
+            </div>
+          </div>
+          {dailyClaimed ? (
+            <button className="btn-secondary" disabled style={{ opacity: 0.7 }}>
+              تم إنجاز تحدي اليوم ✅
+            </button>
+          ) : (
+            <button className="btn-primary" onClick={() => claimDailyChallenge()}>
+              أكمل التحدي (+50 XP، +10 🪙)
+            </button>
+          )}
+        </div>
+      </motion.div>
+
       {/* Two Column Layout */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
         {/* Daily Goals */}
@@ -128,10 +193,10 @@ export default function Dashboard() {
               <span style={{ color: '#facc15' }}>◎</span> أهداف اليوم
             </h3>
             <span style={{ fontSize: 12, color: 'var(--text-muted)', background: 'rgba(250, 204, 21, 0.1)', padding: '3px 10px', borderRadius: 'var(--radius-full)' }}>
-              {dailyGoals.filter(g => g.done).length}/{dailyGoals.length}
+              {dailyGoals.filter((g) => g.done).length}/{dailyGoals.length}
             </span>
           </div>
-          
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {dailyGoals.map((goal, i) => (
               <motion.div
@@ -148,8 +213,8 @@ export default function Dashboard() {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <span style={{ 
-                    fontSize: 14, 
+                  <span style={{
+                    fontSize: 14,
                     fontWeight: goal.done ? 600 : 500,
                     textDecoration: goal.done ? 'line-through' : 'none',
                     color: goal.done ? 'var(--accent-green)' : 'var(--text-primary)'
@@ -183,7 +248,7 @@ export default function Dashboard() {
           <h3 style={{ fontSize: 17, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
             <span style={{ color: '#a855f7' }}>◈</span> النشاط الأخير
           </h3>
-          
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {recentActivity.map((activity, i) => (
               <motion.div

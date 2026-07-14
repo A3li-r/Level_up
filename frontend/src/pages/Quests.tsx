@@ -1,7 +1,19 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useProgress } from '../context/ProgressContext'
 
-const quests = [
+type QuestStatus = 'completed' | 'active' | 'available'
+
+interface Quest {
+  id: number
+  title: string
+  xp: number
+  status: QuestStatus
+  category: string
+  difficulty: string
+}
+
+const initialQuests: Quest[] = [
   { id: 1, title: 'بناء أول صفحة ويب', xp: 100, status: 'completed', category: 'Frontend', difficulty: 'سهل' },
   { id: 2, title: 'تطوير تطبيق TODO', xp: 200, status: 'active', category: 'JavaScript', difficulty: 'متوسط' },
   { id: 3, title: 'إنشاء API كامل', xp: 300, status: 'available', category: 'Backend', difficulty: 'صعب' },
@@ -13,20 +25,33 @@ const quests = [
 ]
 
 export default function Quests() {
+  const { awardQuest, completedQuests } = useProgress()
+  const [quests, setQuests] = useState<Quest[]>(initialQuests)
   const [filter, setFilter] = useState<'all' | 'active' | 'available' | 'completed'>('all')
-  const [selectedQuest, setSelectedQuest] = useState<typeof quests[0] | null>(null)
+  const [selectedQuest, setSelectedQuest] = useState<Quest | null>(null)
 
-  const filtered = filter === 'all' 
-    ? quests 
-    : quests.filter(q => q.status === filter)
+  // Sync persisted completions into the local display on mount / when storage changes.
+  useEffect(() => {
+    setQuests((prev) =>
+      prev.map((q) => (completedQuests.includes(String(q.id)) ? { ...q, status: 'completed' } : q))
+    )
+  }, [completedQuests])
 
-  const statusColors: Record<string, string> = {
+  const handleStart = (q: Quest) => {
+    awardQuest(String(q.id), q.xp)
+    setQuests((prev) => prev.map((x) => (x.id === q.id ? { ...x, status: 'completed' } : x)))
+    setSelectedQuest(null)
+  }
+
+  const filtered = filter === 'all' ? quests : quests.filter((q) => q.status === filter)
+
+  const statusColors: Record<QuestStatus, string> = {
     completed: 'var(--accent-green)',
     active: 'var(--accent-cyan)',
     available: 'var(--accent-orange)'
   }
 
-  const statusLabels: Record<string, string> = {
+  const statusLabels: Record<QuestStatus, string> = {
     completed: 'مكتمل',
     active: 'جاري',
     available: 'متاح'
@@ -36,7 +61,7 @@ export default function Quests() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* Header */}
       <div>
-        <motion.h2 
+        <motion.h2
           className="section-title"
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -44,12 +69,12 @@ export default function Quests() {
           <span style={{ color: '#e879f9' }}>⚔</span> الكويستس
         </motion.h2>
         <p className="section-subtitle">
-          مهمات حقيقية تنفذها وتكسب منها خبرة
+          مهمات حقيقية تنفذها وتكسب منها خبرة وعملات
         </p>
       </div>
 
       {/* Filters */}
-      <motion.div 
+      <motion.div
         style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -60,7 +85,7 @@ export default function Quests() {
           { id: 'active' as const, label: 'جارية', icon: '◉' },
           { id: 'available' as const, label: 'متاحة', icon: '✧' },
           { id: 'completed' as const, label: 'مكتملة', icon: '✓' },
-        ].map(f => (
+        ].map((f) => (
           <button
             key={f.id}
             onClick={() => setFilter(f.id)}
@@ -94,12 +119,12 @@ export default function Quests() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
-            whileHover={{ x: quest.status === 'available' ? -4 : 0 }}
-            onClick={() => quest.status === 'available' && setSelectedQuest(quest)}
+            whileHover={{ x: quest.status !== 'completed' ? -4 : 0 }}
+            onClick={() => quest.status !== 'completed' && setSelectedQuest(quest)}
             className={`quest-card ${quest.status === 'completed' ? 'completed' : ''}`}
             style={{
               opacity: quest.status === 'completed' ? 0.65 : 1,
-              cursor: quest.status === 'available' ? 'pointer' : 'default',
+              cursor: quest.status !== 'completed' ? 'pointer' : 'default',
               padding: '18px 20px'
             }}
           >
@@ -132,7 +157,7 @@ export default function Quests() {
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span className="tag" style={{ 
+                <span className="tag" style={{
                   borderColor: `${statusColors[quest.status]}40`,
                   color: statusColors[quest.status],
                   background: `${statusColors[quest.status]}10`
@@ -148,7 +173,7 @@ export default function Quests() {
         ))}
       </div>
 
-      {/* Start Quest Modal */}
+      {/* Start / Complete Quest Modal */}
       <AnimatePresence>
         {selectedQuest && (
           <motion.div
@@ -172,43 +197,60 @@ export default function Quests() {
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              onClick={e => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
               className="glass-strong"
               style={{ padding: 32, maxWidth: 440, width: '100%', textAlign: 'center' }}
             >
-              <div style={{
-                width: 64,
-                height: 64,
-                borderRadius: 18,
-                background: 'var(--bg-card)',
-                border: '2px solid var(--accent-orange)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 28,
-                margin: '0 auto 16px'
-              }}>
-                ⚔
-              </div>
-              <h3 style={{ fontSize: 20, fontWeight: 900, marginBottom: 8 }}>
-                {selectedQuest.title}
-              </h3>
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 20 }}>
-                <span className="tag tag-purple">{selectedQuest.category}</span>
-                <span className="tag tag-orange">{selectedQuest.difficulty}</span>
-                <span className="tag tag-green">+{selectedQuest.xp} XP</span>
-              </div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: 24 }}>
-                هل أنت مستعد لبدء هذه المهمة؟ أكملها واحصل على الـ XP!
-              </p>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button className="btn-primary" style={{ flex: 1 }}>
-                  ابدأ المهمة
-                </button>
-                <button className="btn-secondary" onClick={() => setSelectedQuest(null)}>
-                  إلغاء
-                </button>
-              </div>
+              {(() => {
+                const q = selectedQuest
+                const alreadyDone = completedQuests.includes(String(q.id))
+                return (
+                  <>
+                    <div style={{
+                      width: 64,
+                      height: 64,
+                      borderRadius: 18,
+                      background: 'var(--bg-card)',
+                      border: '2px solid var(--accent-orange)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 28,
+                      margin: '0 auto 16px'
+                    }}>
+                      ⚔
+                    </div>
+                    <h3 style={{ fontSize: 20, fontWeight: 900, marginBottom: 8 }}>
+                      {q.title}
+                    </h3>
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 20 }}>
+                      <span className="tag tag-purple">{q.category}</span>
+                      <span className="tag tag-orange">{q.difficulty}</span>
+                      <span className="tag tag-green">+{q.xp} XP</span>
+                    </div>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: 24 }}>
+                      {alreadyDone
+                        ? 'أحسنت! لقد أكملت هذه المهمة مسبقاً.'
+                        : 'هل أنت مستعد لبدء هذه المهمة؟ أكملها واحصل على الـ XP والعملات!'}
+                    </p>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      {!alreadyDone && (
+                        <button className="btn-primary" style={{ flex: 1 }} onClick={() => handleStart(q)}>
+                          ابدأ المهمة
+                        </button>
+                      )}
+                      {alreadyDone && (
+                        <button className="btn-secondary" style={{ flex: 1 }} disabled>
+                          مكتمل ✅
+                        </button>
+                      )}
+                      <button className="btn-secondary" onClick={() => setSelectedQuest(null)}>
+                        إلغاء
+                      </button>
+                    </div>
+                  </>
+                )
+              })()}
             </motion.div>
           </motion.div>
         )}

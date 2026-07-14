@@ -5,9 +5,9 @@ The agent MUST read this file at the start of each run, update STATUS, and tick 
 Do NOT delete completed items — mark them ✓ and keep history so progress is visible across runs.
 
 ## STATUS
-- LAST RUN: 2026-07-13 (cron run — enriched DevPaths with verified free-course resources + added "📚 مصادر وتعلم مجانية" modal section; build + deploy clean)
-- LAST RESULT: SCAN clean (frontend `tsc -b && vite build` 0 errors; backend `tsc --noEmit` clean; live 0 console errors). IMPROVE: Added a `resources` (course-link) field to all 9 DevPaths + a "📚 مصادر وتعلم مجانية" section in the path detail modal. 34 links total (freeCodeCamp, JavaScript.info, Full Stack Open, React, Node.js, SQLBolt, Python tutorial, Automate the Boring Stuff, Andrew Ng ML, Fast.ai, Hugging Face NLP, Flutter/Dart docs, Linux Journey, Docker, Kubernetes, Git Immersion, Figma YouTube, AWS Skill Builder, Terraform, Unity Learn, OpenAI Cookbook, Anthropic, Google Generative AI, Selenium, Cypress, Postman…); every URL curl-verified HTTP 200 before linking; paid ones (Google UX, IxDF) badged "مدفوع", free ones "مجاني". Arabic UI throughout. Verified live: opening the Full Stack card renders 6 resource links (e.g. freecodecamp.org/learn/2022/responsive-web-design) with 0 console errors. Deploy ✔ (Firebase hosting, bundle `index-BmxBB7YL.js`).
-- HEALTH: BUILD passing (0 errors). BACKEND tsc --noEmit clean. LIVE: 0 console errors; new markers `مصادر وتعلم مجانية`, `cookbook.openai.com` confirmed in live bundle; DevPaths modal serves verified course resources with 0 console errors.
+- LAST RUN: 2026-07-14 (cron run — implemented persistent progress system: visit-streak + daily challenge + XP/level/coins; wired header + Quests + Dashboard; build + deploy clean)
+- LAST RESULT: SCAN clean (frontend `tsc -b && vite build` 0 errors; backend `tsc --noEmit` clean; live 0 console errors). IMPROVE: Added `frontend/src/context/ProgressContext.tsx` — a localStorage-backed progress store (streak via daily visit, XP→level with Arabic title tiers, coins, completedQuests, once-per-day challenge). Wired the header's 🔥/🪙/level to live values; **Quests now really award XP+coins and persist** (completing quest id 3 → +300 XP, level 1→4 متمرس, coins 10→40, verified in browser and across reload); **Dashboard** now shows real XP/Level/Streak/Coins + a "🎯 تحدي اليوم" card (+50 XP/+10 🪙 once/day). Backlog item 29 (streak/rewards + daily challenge) DONE. Build + deploy clean; live bundle `index-BuyPV0hw.js`.
+- HEALTH: BUILD passing (0 errors). BACKEND tsc --noEmit clean. LIVE: 0 console errors; new markers `تحدي اليوم`, `levelup_progress_v1`, `متمرس`, `سلسلة الأيام` confirmed in live bundle; persistent progress (streak/XP/coins/level) verified end-to-end incl. reload.
 
 ## Vision (from the owner)
 Turn Level Up into a polished, interactive, AI-assisted platform for individual development:
@@ -26,7 +26,7 @@ Turn Level Up into a polished, interactive, AI-assisted platform for individual 
 - [ ] Add paths using the `rpg-learning-app` reference: `skill_view('rpg-learning-app','references/career-paths-v2.md')` has 15 researched career paths (Full Stack, AI/ML, Cybersecurity, Data Scientist, DevOps, Mobile, UI/UX, Cloud Architect, Game Dev, Blockchain, Embedded, QA, Prompt Engineer, Product Manager, AR/VR) with Arabic names, descriptions, `afterComplete` outcomes, salary, demand, and per-skill XP/tier. Pick ONE not-yet-added path each run; convert it into a DevPaths entry AND a SkillTree path (branches → skills → tasks) keeping the existing TypeScript shapes. Keep UI text Arabic.
 - [x] Enrich DevPaths with real courses — added `resources` to all 9 paths + "📚 مصادر وتعلم مجانية" modal section (34 verified links, badged مجاني/مدفوع) — done 2026-07-13.
 - [ ] Enrich the SkillTree `careerPaths` (branches→skills→tasks) with real course resources per skill/task, reusing `references/free-courses.md` (DevPaths already enriched; this extends the visual tree).
-- [ ] Add daily/weekly CHALLENGES and a streak/rewards system to boost engagement (see `rpg-learning-app` SkillSynergy + Achievement patterns).
+- [x] Add daily CHALLENGES and a persistent streak/rewards system — DONE 2026-07-14 (visit-streak + daily challenge + XP/level/coins in `ProgressContext`, wired to header/Quests/Dashboard; weekly tier + Achievement auto-unlock are future enhancements).
 
 ### AI features (backend + UI) — follow `rpg-learning-app` data model
 - [ ] Backend schema: extend `backend/prisma/schema.prisma` per `skill_view('rpg-learning-app','references/data-model.md')` (User, Skill, UserSkill, Quest, Achievement, Resource, FocusSession, SkillSynergy, UserSettings). Keep Prisma v5 (`String[]`/Json NOT supported on SQLite — use comma-separated strings or junction tables). After changes: `rm -f backend/prisma/dev.db && npx prisma db push` then restart the tsx process.
@@ -37,7 +37,9 @@ Turn Level Up into a polished, interactive, AI-assisted platform for individual 
 ### Usability / interactivity
 - [x] Search & filter across paths/skills (DevPaths search + difficulty filter added 2026-07-13; SkillTree already had search).
 - [ ] Responsive / mobile layout pass.
-- [ ] Smooth onboarding + progress dashboard improvements.
+- [ ] Smooth onboarding + progress dashboard improvements (Dashboard progress section improved 2026-07-14 with live XP/level/streak/coins + "🎯 تحدي اليوم" daily-challenge card; full onboarding flow still pending).
+- [ ] Extend Achievements to auto-unlock from real progress (streak days, total XP, completed-quest count) using `ProgressContext`. (New idea 2026-07-14)
+- [ ] Add a weekly challenge tier + a "reset progress" control (Settings) for the progress system. (New idea 2026-07-14)
 - [ ] Accessibility pass (contrast, focus, RTL correctness).
 
 ## Rules (hard)
