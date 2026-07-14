@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 
 // Persistent player progress: streak, XP/level, coins, completed quests, daily challenge.
 // Stored in localStorage so progress survives reloads (no backend required).
+// When a Firebase user is logged in, progress is namespaced by their uid (per-user).
 
 export interface ProgressState {
   coins: number
@@ -14,7 +15,11 @@ export interface ProgressState {
   dailyChallengeDate: string | null // YYYY-MM-DD the daily challenge was claimed
 }
 
-const STORAGE_KEY = 'levelup_progress_v1'
+const STORAGE_PREFIX = 'levelup_progress_v1'
+
+function storageKey(userId?: string | null): string {
+  return userId ? `${STORAGE_PREFIX}_${userId}` : STORAGE_PREFIX
+}
 
 const TITLES: { min: number; title: string }[] = [
   { min: 0, title: 'مبتدئ' },
@@ -51,9 +56,9 @@ function defaultState(): ProgressState {
   return { coins: 0, xp: 0, level, title, streak: 0, lastVisit: null, completedQuests: [], dailyChallengeDate: null }
 }
 
-function load(): ProgressState {
+function load(userId?: string | null): ProgressState {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(storageKey(userId))
     if (raw) {
       const p = JSON.parse(raw)
       const { level, title } = levelForXp(p.xp ?? 0)
@@ -85,16 +90,16 @@ interface ProgressContextValue extends ProgressState {
 
 const ProgressContext = createContext<ProgressContextValue | null>(null)
 
-export function ProgressProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<ProgressState>(() => load())
+export function ProgressProvider({ children, userId }: { children: ReactNode; userId?: string | null }) {
+  const [state, setState] = useState<ProgressState>(() => load(userId))
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+      localStorage.setItem(storageKey(userId), JSON.stringify(state))
     } catch {
       /* storage may be unavailable */
     }
-  }, [state])
+  }, [state, userId])
 
   const recordVisit = () => {
     const today = todayStr()
