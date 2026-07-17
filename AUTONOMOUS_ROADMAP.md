@@ -20,11 +20,16 @@ build + deploy, then updates the status here and commits/pushes to `develop`.
   Firebase site working now while staying backend-ready.
 
 ## Backlog
-- [ ] 1. **User preferences model + Settings screen** — theme color, layout density,
+- [x] 1. **User preferences model + Settings screen** — theme color, layout density,
       default view (tree/grid/roadmap), language (AR/EN), visible branches, difficulty.
       Store client-side first (typed `UserPrefs`, localStorage persistence + context/provider).
+      **DONE (2026-07-17):** `PreferencesContext` (userId-scoped localStorage), `Settings.tsx`,
+      `i18n.ts`, wired into App. Accent + density + language are applied live app-wide;
+      visibleBranches/difficulty are captured and ready for SkillTree consumption.
 - [ ] 2. **Apply personalization dynamically** — theme, default view, filtered/highlighted
       branches reflect each user's prefs across all pages.
+      (Partial: accent/density/lang already live via `PersonalizationLayer`; next: consume
+      `visibleBranches` + `difficulty` inside `SkillTree` to highlight/filter paths.)
 - [ ] 3. **Personalized onboarding wizard** (first run) — capture goals/needs/skill level →
       seeds prefs and recommends a starting branch/path.
 - [ ] 4. **Enhance AI Advisor** to give personalized recommendations from user prefs/needs

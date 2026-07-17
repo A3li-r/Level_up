@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Dashboard from './pages/Dashboard'
 import SkillTree from './pages/SkillTree'
@@ -14,27 +14,37 @@ import DevPaths from './pages/DevPaths'
 import Community from './pages/Community'
 import AIAdvice from './pages/AIAdvice'
 import { ProgressProvider, useProgress } from './context/ProgressContext'
+import { PreferencesProvider, usePreferences, ACCENT_HEX } from './context/PreferencesContext'
 import { AuthProvider, useAuth, type AuthUser } from './context/AuthContext'
 import Login from './pages/Login'
+import Settings from './pages/Settings'
+import { translate } from './i18n'
 import './index.css'
 
-type Tab = 'dashboard' | 'skills' | 'focus' | 'graph' | 'roadmap' | 'ideas' | 'courses' | 'devpaths' | 'rewards' | 'community' | 'quests' | 'achievements' | 'aiadvice'
+type Tab = 'dashboard' | 'skills' | 'focus' | 'graph' | 'roadmap' | 'ideas' | 'courses' | 'devpaths' | 'rewards' | 'community' | 'quests' | 'achievements' | 'aiadvice' | 'settings'
 
-const tabs: { id: Tab; label: string; icon: string; color: string }[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: '◈', color: '#a855f7' },
-  { id: 'skills', label: 'Skill Tree', icon: '⬡', color: '#22d3ee' },
-  { id: 'focus', label: 'Focus', icon: '◎', color: '#34d399' },
-  { id: 'graph', label: 'Knowledge', icon: '⬢', color: '#3b82f6' },
-  { id: 'roadmap', label: 'Roadmap', icon: '◇', color: '#f472b6' },
-  { id: 'ideas', label: 'أفكار', icon: '✧', color: '#facc15' },
-  { id: 'courses', label: 'كورسات', icon: '◆', color: '#fb923c' },
-  { id: 'devpaths', label: 'مسارات', icon: '⬡', color: '#f87171' },
-  { id: 'rewards', label: 'مكافآت', icon: '❖', color: '#c084fc' },
-  { id: 'community', label: 'مجتمع', icon: '◉', color: '#06b6d4' },
-  { id: 'quests', label: 'كويستس', icon: '⚔', color: '#e879f9' },
-  { id: 'achievements', label: 'إنجازات', icon: '★', color: '#fbbf24' },
-  { id: 'aiadvice', label: 'مستشار', icon: '✨', color: '#c084fc' },
+const TABS_META: { id: Tab; key: 'nav.dashboard' | 'nav.skills' | 'nav.focus' | 'nav.graph' | 'nav.roadmap' | 'nav.ideas' | 'nav.courses' | 'nav.devpaths' | 'nav.rewards' | 'nav.community' | 'nav.quests' | 'nav.achievements' | 'nav.aiadvice' | 'nav.settings'; icon: string; color: string }[] = [
+  { id: 'dashboard', key: 'nav.dashboard', icon: '◈', color: '#a855f7' },
+  { id: 'skills', key: 'nav.skills', icon: '⬡', color: '#22d3ee' },
+  { id: 'focus', key: 'nav.focus', icon: '◎', color: '#34d399' },
+  { id: 'graph', key: 'nav.graph', icon: '⬢', color: '#3b82f6' },
+  { id: 'roadmap', key: 'nav.roadmap', icon: '◇', color: '#f472b6' },
+  { id: 'ideas', key: 'nav.ideas', icon: '✧', color: '#facc15' },
+  { id: 'courses', key: 'nav.courses', icon: '◆', color: '#fb923c' },
+  { id: 'devpaths', key: 'nav.devpaths', icon: '⬡', color: '#f87171' },
+  { id: 'rewards', key: 'nav.rewards', icon: '❖', color: '#c084fc' },
+  { id: 'community', key: 'nav.community', icon: '◉', color: '#06b6d4' },
+  { id: 'quests', key: 'nav.quests', icon: '⚔', color: '#e879f9' },
+  { id: 'achievements', key: 'nav.achievements', icon: '★', color: '#fbbf24' },
+  { id: 'aiadvice', key: 'nav.aiadvice', icon: '✨', color: '#c084fc' },
+  { id: 'settings', key: 'nav.settings', icon: '⚙', color: '#94a3b8' },
 ]
+
+// Tabs are rendered with language-aware labels inside the Header (needs prefs).
+function useTabs(): { id: Tab; label: string; icon: string; color: string }[] {
+  const { language } = usePreferences()
+  return TABS_META.map((t) => ({ ...t, label: translate(language, t.key) }))
+}
 
 const pageVariants = {
   initial: { opacity: 0, y: 20, scale: 0.98 },
@@ -44,6 +54,7 @@ const pageVariants = {
 
 function Header({ activeTab, onTab, user, onLogout }: { activeTab: Tab; onTab: (t: Tab) => void; user: AuthUser | null; onLogout: () => void }) {
   const progress = useProgress()
+  const tabs = useTabs()
   const levelProgress = progress.xp % 100
   const initial = (user?.displayName || user?.email || 'ض')?.charAt(0)?.toUpperCase() || 'ض'
 
@@ -53,9 +64,9 @@ function Header({ activeTab, onTab, user, onLogout }: { activeTab: Tab; onTab: (
         <motion.div
           style={{
             width: 42, height: 42, borderRadius: 12,
-            background: 'linear-gradient(135deg, #a855f7, #3b82f6)',
+            background: 'linear-gradient(135deg, var(--user-accent, #a855f7), #3b82f6)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
-            boxShadow: '0 4px 20px rgba(168, 85, 247, 0.3)',
+            boxShadow: '0 4px 20px var(--user-accent-soft, rgba(168, 85, 247, 0.3))',
           }}
           whileHover={{ scale: 1.1, rotate: 5 }} whileTap={{ scale: 0.95 }}
         >
@@ -163,9 +174,26 @@ function Splash() {
   )
 }
 
+// Applies the user's accent color + density to the global chrome.
+// Reads prefs and writes CSS custom properties / a data attribute on <html>,
+// so every page inherits the personalization without prop-drilling.
+function PersonalizationLayer({ children }: { children: React.ReactNode }) {
+  const { accent, density } = usePreferences()
+  useEffect(() => {
+    const hex = ACCENT_HEX[accent]
+    const root = document.documentElement
+    root.style.setProperty('--user-accent', hex)
+    root.style.setProperty('--user-accent-soft', `${hex}40`)
+    root.dataset.density = density
+  }, [accent, density])
+  return <>{children}</>
+}
+
 function AppShell() {
   const { user, loading, configured, logout } = useAuth()
-  const [activeTab, setActiveTab] = useState<Tab>('dashboard')
+  const prefs = usePreferences()
+  // Respect the user's default-view preference on first mount.
+  const [activeTab, setActiveTab] = useState<Tab>(prefs.defaultView)
 
   if (loading) return <Splash />
 
@@ -173,36 +201,41 @@ function AppShell() {
   if (configured && !user) return <Login />
 
   return (
-    <ProgressProvider userId={configured ? user?.uid : null} key={user?.uid}>
-      <div style={{ minHeight: '100vh' }}>
-        <Header activeTab={activeTab} onTab={setActiveTab} user={configured ? user : null} onLogout={logout} />
-        <main className="page-container">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              variants={pageVariants}
-              initial="initial" animate="animate" exit="exit"
-              transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-            >
-              {activeTab === 'dashboard' && <Dashboard />}
-              {activeTab === 'skills' && <SkillTree />}
-              {activeTab === 'focus' && <FocusMode />}
-              {activeTab === 'graph' && <KnowledgeGraph />}
-              {activeTab === 'roadmap' && <Roadmap />}
-              {activeTab === 'ideas' && <Ideas />}
-              {activeTab === 'courses' && <Courses />}
-              {activeTab === 'devpaths' && <DevPaths />}
-              {activeTab === 'rewards' && <Rewards />}
-              {activeTab === 'community' && <Community />}
-              {activeTab === 'quests' && <Quests />}
-              {activeTab === 'achievements' && <Achievements />}
-              {activeTab === 'aiadvice' && <AIAdvice />}
-            </motion.div>
-          </AnimatePresence>
-        </main>
-        <div style={{ height: 'env(safe-area-inset-bottom, 20px)' }} />
-      </div>
-    </ProgressProvider>
+    <PreferencesProvider userId={configured ? user?.uid : null} key={user?.uid}>
+      <ProgressProvider userId={configured ? user?.uid : null} key={user?.uid}>
+        <PersonalizationLayer>
+          <div style={{ minHeight: '100vh' }}>
+            <Header activeTab={activeTab} onTab={setActiveTab} user={configured ? user : null} onLogout={logout} />
+            <main className="page-container">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTab}
+                  variants={pageVariants}
+                  initial="initial" animate="animate" exit="exit"
+                  transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+                >
+                  {activeTab === 'dashboard' && <Dashboard />}
+                  {activeTab === 'skills' && <SkillTree />}
+                  {activeTab === 'focus' && <FocusMode />}
+                  {activeTab === 'graph' && <KnowledgeGraph />}
+                  {activeTab === 'roadmap' && <Roadmap />}
+                  {activeTab === 'ideas' && <Ideas />}
+                  {activeTab === 'courses' && <Courses />}
+                  {activeTab === 'devpaths' && <DevPaths />}
+                  {activeTab === 'rewards' && <Rewards />}
+                  {activeTab === 'community' && <Community />}
+                  {activeTab === 'quests' && <Quests />}
+                  {activeTab === 'achievements' && <Achievements />}
+                  {activeTab === 'aiadvice' && <AIAdvice />}
+                  {activeTab === 'settings' && <Settings />}
+                </motion.div>
+              </AnimatePresence>
+            </main>
+            <div style={{ height: 'env(safe-area-inset-bottom, 20px)' }} />
+          </div>
+        </PersonalizationLayer>
+      </ProgressProvider>
+    </PreferencesProvider>
   )
 }
 

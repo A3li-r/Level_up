@@ -691,6 +691,24 @@ const careerPaths: Path[] = [
   },
 ]
 
+// Lightweight, cross-page summary of every top-level path.
+// Imported by Settings so the "visible branches" picker stays in sync with
+// the SkillTree data (single source of truth — no duplicated path list).
+export interface PathSummary {
+  id: string
+  name: string
+  nameEn: string
+  icon: string
+  color: string
+}
+export const PATH_SUMMARY: PathSummary[] = careerPaths.map((p) => ({
+  id: p.id,
+  name: p.name,
+  nameEn: p.nameEn,
+  icon: p.icon,
+  color: p.color,
+}))
+
 // ─── Component ─────────────────────────────────────────────
 function NodeCard({ cx, cy, w, h, color, children, onClick, glow, dim }: {
   cx: number; cy: number; w: number; h: number; color: string

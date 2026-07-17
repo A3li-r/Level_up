@@ -735,8 +735,21 @@ body::before {
   .page-container {
     padding: 16px;
   }
-  
+
   .section-title {
     font-size: 20px;
   }
 }
+
+/* ===== USER DENSITY (personalization) ===== */
+/* When the user picks "compact" layout, tighten spacing across the app.
+   Toggled via <html data-density="compact"> from PersonalizationLayer. */
+html[data-density="compact"] .skill-node { padding: 10px 12px; min-width: 120px; }
+html[data-density="compact"] .stat-card { padding: 14px; }
+html[data-density="compact"] .quest-card { padding: 12px; }
+html[data-density="compact"] .level-badge { padding: 4px 10px; gap: 7px; }
+html[data-density="compact"] .nav-tab { padding: 6px 12px; }
+html[data-density="compact"] .card-grid { gap: 10px; }
+html[data-density="compact"] .card-grid-sm { gap: 8px; }
+html[data-density="compact"] .card-grid-lg { gap: 14px; }
+html[data-density="compact"] .page-container { padding: 14px; }
